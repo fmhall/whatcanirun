@@ -1,0 +1,26 @@
+{
+  "name": "whatcanirun",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo build",
+    "check": "turbo run __check__",
+    "format": "turbo run __format__",
+    "lint": "turbo run __lint__",
+    "test": "turbo test",
+    "typecheck": "turbo run typecheck"
+  },
+  "packageManager": "bun@1.3.3",
+  "devDependencies": {
+    "@types/bun": "^1.3.2",
+    "turbo": "^2.6.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
