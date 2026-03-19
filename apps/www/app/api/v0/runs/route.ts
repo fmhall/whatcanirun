@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { and, asc, count, desc, eq, isNull, SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, SQL } from 'drizzle-orm';
 import { unzipSync } from 'fflate';
 
 import { db } from '@/lib/db';
-import { apiTokens, devices, models, nonces, runs, RunStatus, ScenarioId } from '@/lib/db/schema';
+import { apiTokens, devices, models, runs, RunStatus, ScenarioId } from '@/lib/db/schema';
+import { sha256 } from '@/lib/utils';
 import {
   AggregateMetrics,
   validateManifest,
@@ -55,7 +56,6 @@ interface ManifestData {
   quant: { name: string | null };
   context_length?: number;
   notes?: string;
-  nonce?: string;
 }
 
 interface ResultsData {
@@ -151,25 +151,26 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 6. Verify nonce if present
-  const nonceValue = manifest.nonce || (formData.get('nonce') as string | null);
-  let nonceVerified = false;
-  if (nonceValue) {
-    const result = await db
-      .update(nonces)
-      .set({ consumedAt: new Date() })
-      .where(and(eq(nonces.id, nonceValue), isNull(nonces.consumedAt)))
-      .returning({ id: nonces.id, expiresAt: nonces.expiresAt });
+  // 6. Deduplicate by bundle content hash
+  const bundleSha256 = formData.get('bundle_sha256') as string | null;
+  if (!bundleSha256) {
+    return NextResponse.json({ error: 'Missing bundle_sha256' }, { status: 400 });
+  }
 
-    if (result.length === 0) {
-      return NextResponse.json({ error: 'Invalid or already consumed nonce' }, { status: 409 });
-    }
+  const [existing] = await db
+    .select({ id: runs.id })
+    .from(runs)
+    .where(eq(runs.bundleSha256, bundleSha256))
+    .limit(1);
 
-    if (result[0]!.expiresAt < new Date()) {
-      return NextResponse.json({ error: 'Nonce has expired' }, { status: 409 });
-    }
-
-    nonceVerified = true;
+  if (existing) {
+    return NextResponse.json(
+      {
+        error: 'Duplicate bundle: a run with this content hash already exists',
+        run_id: existing.id,
+      },
+      { status: 409 },
+    );
   }
 
   // 7. Upsert device
@@ -256,7 +257,7 @@ export async function POST(request: NextRequest) {
       userId,
       deviceId: device!.id,
       modelId: model!.id,
-      nonceVerified,
+      bundleSha256,
       runtimeName: manifest.runtime.name,
       runtimeVersion: manifest.runtime.version,
       runtimeBuildFlags: manifest.runtime.build_flags,
@@ -366,15 +367,4 @@ export async function GET(request: NextRequest) {
   ]);
 
   return NextResponse.json({ runs: runRows, total: totalRow!.count });
-}
-
-// -----------------------------------------------------------------------------
-// Helpers
-// -----------------------------------------------------------------------------
-
-async function sha256(input: string): Promise<string> {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
 }

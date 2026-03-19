@@ -99,20 +99,24 @@ export const verifications = pgTable('verifications', {
   updatedAt: timestamp('updated_at'),
 });
 
-export const apiTokens = pgTable('api_tokens', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => `tok_${crypto.randomUUID()}`),
-  userId: text('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  tokenHash: text('token_hash').unique(),
-  name: text('name').notNull(),
-  code: text('code').unique(),
-  codeExpiresAt: timestamp('code_expires_at'),
-  lastUsedAt: timestamp('last_used_at'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-});
+export const apiTokens = pgTable(
+  'api_tokens',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => `tok_${crypto.randomUUID()}`),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').unique(),
+    name: text('name').notNull(),
+    code: text('code').unique(),
+    codeExpiresAt: timestamp('code_expires_at'),
+    lastUsedAt: timestamp('last_used_at'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [index('api_tokens_user_code_idx').on(t.userId, t.code)],
+);
 
 // -----------------------------------------------------------------------------
 // Devices
@@ -155,19 +159,6 @@ export const models = pgTable('models', {
 });
 
 // -----------------------------------------------------------------------------
-// Nonces
-// -----------------------------------------------------------------------------
-
-export const nonces = pgTable('nonces', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => `nonce_${crypto.randomUUID()}`),
-  expiresAt: timestamp('expires_at').notNull(),
-  consumedAt: timestamp('consumed_at'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-});
-
-// -----------------------------------------------------------------------------
 // Runs
 // -----------------------------------------------------------------------------
 
@@ -191,7 +182,7 @@ export const runs = pgTable(
     task: text('task').notNull(),
     canonical: boolean('canonical').notNull(),
     notes: text('notes'),
-    nonceVerified: boolean('nonce_verified').notNull().default(false),
+    bundleSha256: text('bundle_sha256').notNull().unique(),
     runtimeName: text('runtime_name').notNull(),
     runtimeVersion: text('runtime_version').notNull(),
     runtimeBuildFlags: text('runtime_build_flags'),
@@ -250,5 +241,4 @@ export type User = typeof users.$inferSelect;
 export type ApiToken = typeof apiTokens.$inferSelect;
 export type Device = typeof devices.$inferSelect;
 export type Model = typeof models.$inferSelect;
-export type Nonce = typeof nonces.$inferSelect;
 export type Run = typeof runs.$inferSelect;
