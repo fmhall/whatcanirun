@@ -75,10 +75,11 @@ export async function loginViaBrowser(): Promise<AuthData> {
     console.log(`If the browser didn't open, visit: ${loginUrl}`);
 
     // Timeout after 5 minutes.
-    setTimeout(() => {
+    const timeout = setTimeout(() => {
       server.stop();
       reject(new Error('Login timed out. Please try again.'));
     }, 300_000);
+    timeout.unref();
   });
 }
 
