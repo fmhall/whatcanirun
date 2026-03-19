@@ -35,14 +35,13 @@ export async function POST(request: NextRequest) {
       .where(eq(apiTokens.tokenHash, tokenHash))
       .limit(1);
 
-    if (apiToken) {
-      userId = apiToken.userId;
-      // Update last-used timestamp (fire-and-forget).
-      await db
-        .update(apiTokens)
-        .set({ lastUsedAt: new Date() })
-        .where(eq(apiTokens.id, apiToken.id));
+    if (!apiToken) {
+      return NextResponse.json({ error: 'Invalid or expired token.' }, { status: 401 });
     }
+
+    userId = apiToken.userId;
+    // Update last-used timestamp (fire-and-forget).
+    await db.update(apiTokens).set({ lastUsedAt: new Date() }).where(eq(apiTokens.id, apiToken.id));
   }
 
   // Parse multipart form.
@@ -187,10 +186,10 @@ export async function POST(request: NextRequest) {
   const mod = manifest.model;
   const modDisplayName = truncate(mod.display_name)!;
   const modFormat = truncate(mod.format)!;
-  const modSource = truncate(mod.source);
-  const modParameters = truncate(mod.parameters);
-  const modQuant = truncate(mod.quant);
-  const modArchitecture = truncate(mod.architecture);
+  const modSource = truncate(mod.source) ?? null;
+  const modParameters = truncate(mod.parameters) ?? null;
+  const modQuant = truncate(mod.quant) ?? null;
+  const modArchitecture = truncate(mod.architecture) ?? null;
   const [model] = await db
     .insert(models)
     .values({
