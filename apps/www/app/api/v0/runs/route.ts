@@ -1,70 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { and, asc, count, desc, eq, SQL } from 'drizzle-orm';
+import type { Manifest, Results } from '@whatcanirun/shared';
+import { validateManifest, validateResults } from '@whatcanirun/shared';
+import { and, eq } from 'drizzle-orm';
 import { unzipSync } from 'fflate';
 
 import { db } from '@/lib/db';
-import { apiTokens, devices, models, runs, RunStatus, ScenarioId } from '@/lib/db/schema';
+import { apiTokens, devices, models, runs, RunStatus } from '@/lib/db/schema';
 import { sha256 } from '@/lib/utils';
-import {
-  AggregateMetrics,
-  validateManifest,
-  validatePlausibility,
-  validateResults,
-} from '@/lib/validators/bundle';
+import { validatePlausibility } from '@/lib/validators/bundle';
 
 // -----------------------------------------------------------------------------
-// POST /api/v0/runs — submit a benchmark bundle
+// Constants
 // -----------------------------------------------------------------------------
 
-interface ManifestDevice {
-  cpu: string;
-  gpu: string;
-  ram_gb: number;
-  os_name: string;
-  os_version: string;
-}
+const MAX_ZIP_BYTES = 5 * 1024; // 5 KB compressed
+const MAX_UNZIPPED_BYTES = 50 * 1024; // 50 KB decompressed
+const MAX_TEXT_LENGTH = 1_000;
 
-interface ManifestRuntime {
-  name: string;
-  version: string;
-  build_flags?: string;
-}
-
-interface ManifestModel {
-  display_name: string;
-  format: string;
-  artifact_sha256: string;
-  tokenizer_sha256?: string;
-  source?: string;
-  file_size_bytes?: number;
-  parameters?: string;
-  quant?: string;
-  architecture?: string;
-}
-
-interface ManifestData {
-  schema_version: string;
-  bundle_id: string;
-  task: string;
-  scenario_id: string;
-  canonical: boolean;
-  harness: { version: string; git_sha: string };
-  device: ManifestDevice;
-  runtime: ManifestRuntime;
-  model: ManifestModel;
-  quant: { name: string | null };
-  context_length?: number;
-  notes?: string;
-}
-
-interface ResultsData {
-  trials: unknown[];
-  aggregate: AggregateMetrics;
-}
+// -----------------------------------------------------------------------------
+// POST
+// -----------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
-  // 0. Authenticate via bearer token
+  // Authenticate via bearer token.
   let userId: string | null = null;
   const authHeader = request.headers.get('authorization');
   if (authHeader?.startsWith('Bearer ')) {
@@ -79,40 +38,59 @@ export async function POST(request: NextRequest) {
     if (apiToken) {
       userId = apiToken.userId;
       // Update last-used timestamp (fire-and-forget).
-      db.update(apiTokens)
+      await db
+        .update(apiTokens)
         .set({ lastUsedAt: new Date() })
-        .where(eq(apiTokens.id, apiToken.id))
-        .then(() => {});
+        .where(eq(apiTokens.id, apiToken.id));
     }
   }
 
-  // 1. Parse multipart form
+  // Parse multipart form.
   const formData = await request.formData();
   const bundleFile = formData.get('bundle');
   if (!(bundleFile instanceof File)) {
-    return NextResponse.json({ error: 'Missing bundle zip file' }, { status: 400 });
+    return NextResponse.json({ error: 'Missing bundle zip file.' }, { status: 400 });
   }
 
-  // 2. Unzip in memory
+  // Unzip in memory (with size limits).
   const zipBuffer = new Uint8Array(await bundleFile.arrayBuffer());
+  if (zipBuffer.byteLength > MAX_ZIP_BYTES) {
+    return NextResponse.json(
+      {
+        error: `Bundle too large: ${zipBuffer.byteLength} bytes exceeds ${MAX_ZIP_BYTES} byte limit.`,
+      },
+      { status: 413 },
+    );
+  }
+
   let files: Record<string, Uint8Array>;
   try {
     files = unzipSync(zipBuffer);
   } catch {
-    return NextResponse.json({ error: 'Invalid zip file' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid zip file.' }, { status: 400 });
   }
 
-  // 3. Extract and validate manifest.json
+  const totalUnzippedBytes = Object.values(files).reduce((sum, buf) => sum + buf.byteLength, 0);
+  if (totalUnzippedBytes > MAX_UNZIPPED_BYTES) {
+    return NextResponse.json(
+      {
+        error: `Decompressed bundle too large: ${totalUnzippedBytes} bytes exceeds ${MAX_UNZIPPED_BYTES} byte limit.`,
+      },
+      { status: 413 },
+    );
+  }
+
+  // Extract and validate manifest.json.
   const manifestBytes = files['manifest.json'];
   if (!manifestBytes) {
-    return NextResponse.json({ error: 'Missing manifest.json in bundle' }, { status: 400 });
+    return NextResponse.json({ error: 'Missing `manifest.json` in bundle.' }, { status: 400 });
   }
 
-  let manifest: ManifestData;
+  let manifest: Manifest;
   try {
     manifest = JSON.parse(new TextDecoder().decode(manifestBytes));
   } catch {
-    return NextResponse.json({ error: 'Invalid manifest.json' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid `manifest.json`.' }, { status: 400 });
   }
 
   const manifestErrors = validateManifest(manifest);
@@ -123,17 +101,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 4. Extract and validate results.json
+  // Extract and validate `results.json`.
   const resultsBytes = files['results.json'];
   if (!resultsBytes) {
-    return NextResponse.json({ error: 'Missing results.json in bundle' }, { status: 400 });
+    return NextResponse.json({ error: 'Missing `results.json` in bundle.' }, { status: 400 });
   }
 
-  let results: ResultsData;
+  let results: Results;
   try {
     results = JSON.parse(new TextDecoder().decode(resultsBytes));
   } catch {
-    return NextResponse.json({ error: 'Invalid results.json' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid `results.json`.' }, { status: 400 });
   }
 
   const resultsErrors = validateResults(results);
@@ -141,7 +119,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid results', details: resultsErrors }, { status: 400 });
   }
 
-  // 5. Plausibility checks
+  // Plausibility checks.
   const aggregate = results.aggregate;
   const plausibilityErrors = validatePlausibility(aggregate);
   if (plausibilityErrors.length > 0) {
@@ -151,11 +129,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 6. Deduplicate by bundle content hash
-  const bundleSha256 = formData.get('bundle_sha256') as string | null;
-  if (!bundleSha256) {
-    return NextResponse.json({ error: 'Missing bundle_sha256' }, { status: 400 });
-  }
+  // Deduplicate by bundle content hash (computed server-side).
+  const bundleSha256 = await sha256(zipBuffer);
 
   const [existing] = await db
     .select({ id: runs.id })
@@ -173,16 +148,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 7. Upsert device
+  // Upsert device.
   const dev = manifest.device;
+  const devCpu = truncate(dev.cpu)!;
+  const devGpu = truncate(dev.gpu)!;
+  const devOsName = truncate(dev.os_name)!;
+  const devOsVersion = truncate(dev.os_version)!;
   await db
     .insert(devices)
     .values({
-      cpu: dev.cpu,
-      gpu: dev.gpu,
+      cpu: devCpu,
+      gpu: devGpu,
       ramGb: dev.ram_gb,
-      osName: dev.os_name,
-      osVersion: dev.os_version,
+      osName: devOsName,
+      osVersion: devOsVersion,
     })
     .onConflictDoNothing();
 
@@ -191,51 +170,63 @@ export async function POST(request: NextRequest) {
     .from(devices)
     .where(
       and(
-        eq(devices.cpu, dev.cpu),
-        eq(devices.gpu, dev.gpu),
+        eq(devices.cpu, devCpu),
+        eq(devices.gpu, devGpu),
         eq(devices.ramGb, dev.ram_gb),
-        eq(devices.osName, dev.os_name),
-        eq(devices.osVersion, dev.os_version),
+        eq(devices.osName, devOsName),
+        eq(devices.osVersion, devOsVersion),
       ),
     )
     .limit(1);
 
-  // 8. Upsert model (update metadata on conflict with same artifact)
+  if (!device) {
+    return NextResponse.json({ error: 'Failed to resolve device.' }, { status: 500 });
+  }
+
+  // Upsert model (update metadata on conflict with same artifact).
   const mod = manifest.model;
+  const modDisplayName = truncate(mod.display_name)!;
+  const modFormat = truncate(mod.format)!;
+  const modSource = truncate(mod.source);
+  const modParameters = truncate(mod.parameters);
+  const modQuant = truncate(mod.quant);
+  const modArchitecture = truncate(mod.architecture);
   const [model] = await db
     .insert(models)
     .values({
-      displayName: mod.display_name,
-      format: mod.format,
+      displayName: modDisplayName,
+      format: modFormat,
       artifactSha256: mod.artifact_sha256,
-      tokenizerSha256: mod.tokenizer_sha256,
-      source: mod.source,
+      source: modSource,
       fileSizeBytes: mod.file_size_bytes,
-      parameters: mod.parameters,
-      quant: mod.quant,
-      architecture: mod.architecture,
+      parameters: modParameters,
+      quant: modQuant,
+      architecture: modArchitecture,
     })
     .onConflictDoUpdate({
       target: models.artifactSha256,
       set: {
-        displayName: mod.display_name,
-        format: mod.format,
-        tokenizerSha256: mod.tokenizer_sha256,
-        source: mod.source,
+        displayName: modDisplayName,
+        format: modFormat,
+        source: modSource,
         fileSizeBytes: mod.file_size_bytes,
-        parameters: mod.parameters,
-        quant: mod.quant,
-        architecture: mod.architecture,
+        parameters: modParameters,
+        quant: modQuant,
+        architecture: modArchitecture,
       },
     })
     .returning({ id: models.id });
 
-  // 9. Compute aggregated token counts from trials
-  const trials = results.trials as Array<{ input_tokens?: number; output_tokens?: number }>;
+  if (!model) {
+    return NextResponse.json({ error: 'Failed to resolve model' }, { status: 500 });
+  }
+
+  // Compute aggregated token counts from trials.
+  const trials = results.trials;
   const promptTokens = trials.reduce((sum, t) => sum + (t.input_tokens ?? 0), 0);
   const completionTokens = trials.reduce((sum, t) => sum + (t.output_tokens ?? 0), 0);
 
-  // 10. Hash client IP for rate-limiting / spam detection
+  // Hash client IP for rate-limiting / spam detection.
   const forwarded = request.headers.get('x-forwarded-for');
   const ip = forwarded?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
   const ipHashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ip));
@@ -243,26 +234,24 @@ export async function POST(request: NextRequest) {
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 
-  // 11. Insert run
+  // Insert run.
   const [run] = await db
     .insert(runs)
     .values({
       bundleId: manifest.bundle_id,
       schemaVersion: manifest.schema_version,
       status: RunStatus.VERIFIED,
-      scenarioId: manifest.scenario_id as ScenarioId,
-      task: manifest.task,
-      canonical: manifest.canonical,
-      notes: manifest.notes,
+      canonical: false,
+      notes: truncate(manifest.notes, 5000),
       userId,
-      deviceId: device!.id,
-      modelId: model!.id,
+      deviceId: device.id,
+      modelId: model.id,
       bundleSha256,
-      runtimeName: manifest.runtime.name,
-      runtimeVersion: manifest.runtime.version,
-      runtimeBuildFlags: manifest.runtime.build_flags,
-      harnessVersion: manifest.harness.version,
-      harnessGitSha: manifest.harness.git_sha,
+      runtimeName: truncate(manifest.runtime.name)!,
+      runtimeVersion: truncate(manifest.runtime.version)!,
+      runtimeBuildFlags: truncate(manifest.runtime.build_flags),
+      harnessVersion: truncate(manifest.harness.version)!,
+      harnessGitSha: truncate(manifest.harness.git_sha)!,
       contextLength: manifest.context_length,
       promptTokens,
       completionTokens,
@@ -279,92 +268,28 @@ export async function POST(request: NextRequest) {
     })
     .returning({ id: runs.id });
 
+  if (!run) {
+    return NextResponse.json({ error: 'Failed to insert run' }, { status: 500 });
+  }
+
   return NextResponse.json(
     {
-      run_id: run!.id,
+      run_id: run.id,
       status: RunStatus.VERIFIED,
-      run_url: `/runs/${run!.id}`,
+      run_url: `/runs/${run.id}`,
     },
     { status: 201 },
   );
 }
 
 // -----------------------------------------------------------------------------
-// GET /api/v0/runs — list runs
+// Helpers
 // -----------------------------------------------------------------------------
 
-const SORT_COLUMNS = {
-  decode_tps_mean: runs.decodeTpsMean,
-  ttft_p50_ms: runs.ttftP50Ms,
-  weighted_tps_mean: runs.weightedTpsMean,
-  created_at: runs.createdAt,
-} as const;
-
-export async function GET(request: NextRequest) {
-  const params = request.nextUrl.searchParams;
-
-  const modelId = params.get('model_id');
-  const deviceId = params.get('device_id');
-  const scenarioId = params.get('scenario_id');
-  const runtimeName = params.get('runtime_name');
-  const status = params.get('status') || RunStatus.VERIFIED;
-  const sortKey = (params.get('sort') || 'decode_tps_mean') as keyof typeof SORT_COLUMNS;
-  const order = params.get('order') === 'asc' ? 'asc' : 'desc';
-  const limit = Math.min(parseInt(params.get('limit') || '50', 10), 100);
-  const offset = parseInt(params.get('offset') || '0', 10);
-
-  const conditions: SQL[] = [];
-  if (modelId) conditions.push(eq(runs.modelId, modelId));
-  if (deviceId) conditions.push(eq(runs.deviceId, deviceId));
-  if (scenarioId) conditions.push(eq(runs.scenarioId, scenarioId as ScenarioId));
-  if (runtimeName) conditions.push(eq(runs.runtimeName, runtimeName));
-  if (status) conditions.push(eq(runs.status, status as RunStatus));
-
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
-  const sortCol = SORT_COLUMNS[sortKey] || runs.decodeTpsMean;
-  const orderFn = order === 'asc' ? asc : desc;
-
-  const [runRows, [totalRow]] = await Promise.all([
-    db
-      .select({
-        id: runs.id,
-        bundleId: runs.bundleId,
-        schemaVersion: runs.schemaVersion,
-        status: runs.status,
-        scenarioId: runs.scenarioId,
-        task: runs.task,
-        canonical: runs.canonical,
-        notes: runs.notes,
-        deviceId: runs.deviceId,
-        modelId: runs.modelId,
-        userId: runs.userId,
-        runtimeName: runs.runtimeName,
-        runtimeVersion: runs.runtimeVersion,
-        runtimeBuildFlags: runs.runtimeBuildFlags,
-        harnessVersion: runs.harnessVersion,
-        harnessGitSha: runs.harnessGitSha,
-        contextLength: runs.contextLength,
-        promptTokens: runs.promptTokens,
-        completionTokens: runs.completionTokens,
-        ttftP50Ms: runs.ttftP50Ms,
-        ttftP95Ms: runs.ttftP95Ms,
-        decodeTpsMean: runs.decodeTpsMean,
-        weightedTpsMean: runs.weightedTpsMean,
-        idleRssMb: runs.idleRssMb,
-        peakRssMb: runs.peakRssMb,
-        trialsPassed: runs.trialsPassed,
-        trialsTotal: runs.trialsTotal,
-        bundleUrl: runs.bundleUrl,
-        createdAt: runs.createdAt,
-        updatedAt: runs.updatedAt,
-      })
-      .from(runs)
-      .where(where)
-      .orderBy(orderFn(sortCol))
-      .limit(limit)
-      .offset(offset),
-    db.select({ count: count() }).from(runs).where(where),
-  ]);
-
-  return NextResponse.json({ runs: runRows, total: totalRow!.count });
+function truncate(
+  value: string | undefined | null,
+  max = MAX_TEXT_LENGTH,
+): string | undefined | null {
+  if (value == null) return value;
+  return value.length > max ? value.slice(0, max) : value;
 }

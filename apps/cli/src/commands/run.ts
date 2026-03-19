@@ -1,8 +1,9 @@
+import type { DerivedMetrics } from '@whatcanirun/shared';
 import { defineCommand } from 'citty';
 import { basename } from 'path';
 
 import { getAuth } from '../auth/token';
-import { createBundle, type DerivedMetrics } from '../bundle/create';
+import { createBundle } from '../bundle/create';
 import { validateBundle } from '../bundle/validate';
 import { detectDevice } from '../device/detect';
 import { findHfCachePath, inspectModel, isHuggingFaceRepoId, resolveModel } from '../model/resolve';
@@ -36,10 +37,6 @@ const command = defineCommand({
     'prompt-tokens': {
       type: 'string',
       description: 'Prompt token count (default: 4096)',
-    },
-    scenario: {
-      type: 'string',
-      description: 'Scenario ID (default: chat_short_v1)',
     },
     'gen-tokens': {
       type: 'string',
@@ -76,12 +73,6 @@ const command = defineCommand({
     const genTokens = parsePositiveInt((args['gen-tokens'] as string) || '1024', 'gen-tokens');
     const numTrials = parsePositiveInt((args.trials as string) || '10', 'trials');
     const outputDir = (args.output as string) || DEFAULT_BUNDLES_DIR;
-    const scenarioId = (args.scenario as string) || 'chat_short_v1';
-    const validScenarios = ['chat_short_v1', 'chat_long_v1'];
-    if (!validScenarios.includes(scenarioId)) {
-      log.error(`Invalid scenario: ${scenarioId}. Valid: ${validScenarios.join(', ')}`);
-      process.exit(1);
-    }
 
     // Resolve runtime.
     let adapter;
@@ -207,7 +198,6 @@ const command = defineCommand({
       model: modelInfo,
       bench,
       metrics,
-      scenarioId,
       notes: args.notes as string | undefined,
     });
 
