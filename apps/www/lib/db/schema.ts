@@ -1,5 +1,6 @@
 import { relations } from 'drizzle-orm';
 import {
+  bigint,
   boolean,
   index,
   integer,
@@ -143,7 +144,7 @@ export const models = pgTable('models', {
   format: text('format').notNull(),
   artifactSha256: text('artifact_sha256').notNull().unique(),
   source: text('source'),
-  fileSizeBytes: integer('file_size_bytes'),
+  fileSizeBytes: bigint('file_size_bytes', { mode: 'number' }),
   parameters: text('parameters'),
   quant: text('quant'),
   architecture: text('architecture'),

@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Extract and validate manifest.json.
+  // Extract and validate `manifest.json`.
   const manifestBytes = files['manifest.json'];
   if (!manifestBytes) {
     return NextResponse.json({ error: 'Missing `manifest.json` in bundle.' }, { status: 400 });
@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
     .returning({ id: models.id });
 
   if (!model) {
-    return NextResponse.json({ error: 'Failed to resolve model' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to resolve model.' }, { status: 500 });
   }
 
   // Compute aggregated token counts from trials.
@@ -273,7 +273,7 @@ export async function POST(request: NextRequest) {
     .returning({ id: runs.id });
 
   if (!run) {
-    return NextResponse.json({ error: 'Failed to insert run' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to insert run.' }, { status: 500 });
   }
 
   return NextResponse.json(
