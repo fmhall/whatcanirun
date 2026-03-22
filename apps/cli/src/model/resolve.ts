@@ -1,7 +1,10 @@
+import chalk from 'chalk';
 import { createHash } from 'crypto';
 import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
 import { homedir } from 'os';
 import { basename, extname, join, resolve } from 'path';
+
+import * as log from '../utils/log';
 
 // -----------------------------------------------------------------------------
 // Types
@@ -51,12 +54,12 @@ const MLX_BIT_PATTERNS = [/(\d+)[\s-]*bit/i];
 // -----------------------------------------------------------------------------
 
 export function inferQuant(name: string): string | null {
-  // Try GGUF-style quant patterns first
+  // Try GGUF-style quant patterns first.
   for (const pattern of QUANT_PATTERNS) {
     const match = name.match(pattern);
     if (match) return match[1]!.toLowerCase();
   }
-  // Try MLX-style bit patterns (e.g. "4bit", "8bit")
+  // Try MLX-style bit patterns (e.g. "4bit", "8bit").
   for (const pattern of MLX_BIT_PATTERNS) {
     const match = name.match(pattern);
     if (match) return `${match[1]}bit`;
@@ -71,15 +74,15 @@ export function inferFormat(modelPath: string): string {
   if (ext === '.bin') return 'bin';
   if (ext === '.pt' || ext === '.pth') return 'pytorch';
 
-  // Check if it's an mlx directory
+  // Check if it's an MLX directory.
   const configPath = resolve(modelPath, 'config.json');
   if (existsSync(configPath)) {
     try {
       const config = JSON.parse(readFileSync(configPath, 'utf-8'));
       if (config.model_type) return 'mlx';
     } catch (e: unknown) {
-      console.warn(
-        `Warning: could not parse ${configPath}: ${e instanceof Error ? e.message : String(e)}`
+      log.warn(
+        `Could not parse ${log.filepath(configPath)}: ${e instanceof Error ? e.message : String(e)}`
       );
     }
   }
@@ -92,7 +95,8 @@ export function inferFormat(modelPath: string): string {
 // -----------------------------------------------------------------------------
 
 /**
- * Check if a string looks like a HuggingFace repo ID (e.g. "mlx-community/Qwen3.5-0.8B-4bit").
+ * Check if a string looks like a Hugging Face repo ID (e.g.
+ * "mlx-community/Qwen3.5-0.8B-4bit").
  */
 export function isHuggingFaceRepoId(ref: string): boolean {
   return (
@@ -120,50 +124,68 @@ export function findHfCachePath(repoId: string): string | null {
 
   if (snapshots.length === 0) return null;
 
-  // Return the most recently modified snapshot
+  // Return the most recently modified snapshot.
   return snapshots
     .map((d) => ({ name: d, mtime: statSync(join(snapshotsDir, d)).mtimeMs }))
     .sort((a, b) => b.mtime - a.mtime)
     .map((d) => join(snapshotsDir, d.name))[0]!;
 }
 
+/**
+ * Fetch expected total file size for an HF repo via the API.
+ */
+export async function getHfRepoSize(repoId: string): Promise<number | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const resp = await fetch(`https://huggingface.co/api/models/${repoId}`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!resp.ok) return null;
+    const data = (await resp.json()) as { usedStorage?: number };
+    return data.usedStorage && data.usedStorage > 0 ? data.usedStorage : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Sum the size of all blobs (including .incomplete) in the HF cache for a repo.
+ */
+export function getHfCacheBlobSize(repoId: string): number {
+  const [org, name] = repoId.split('/');
+  const blobsDir = join(
+    homedir(),
+    '.cache',
+    'huggingface',
+    'hub',
+    `models--${org}--${name}`,
+    'blobs'
+  );
+  if (!existsSync(blobsDir)) return 0;
+  let total = 0;
+  try {
+    for (const f of readdirSync(blobsDir)) {
+      try {
+        total += statSync(join(blobsDir, f)).size;
+      } catch {}
+    }
+  } catch {}
+  return total;
+}
+
 export async function resolveModel(modelRef: string): Promise<string> {
-  // Direct file path or directory (mlx model dir or gguf file)
+  // Direct file path or directory (mlx model dir or gguf file).
   const resolved = resolve(modelRef);
   if (existsSync(resolved)) return resolved;
 
-  // HuggingFace repo ID — return as-is (mlx_lm handles download)
+  // Hugging Face repo ID — return as-is (mlx_lm handles download).
   if (isHuggingFaceRepoId(modelRef)) return modelRef;
 
-  // Try alias
-  const aliases = await loadModelAliases();
-  const aliasPath = aliases[modelRef];
-  if (aliasPath) {
-    const aliasResolved = resolve(aliasPath);
-    if (existsSync(aliasResolved)) return aliasResolved;
-    throw new Error(`Model alias '${modelRef}' points to '${aliasPath}' which does not exist`);
-  }
-
   throw new Error(
-    `Model not found: '${modelRef}'. Provide a file path, HuggingFace repo ID, or alias from ~/.config/whatcanirun/models.toml`
+    `Model not found: "${chalk.cyan(modelRef)}". Provide a file path or Hugging Face repo ID.`
   );
-}
-
-async function loadModelAliases(): Promise<Record<string, string>> {
-  const configPath = resolve(homedir(), '.config', 'whatcanirun', 'models.toml');
-  if (!existsSync(configPath)) return {};
-
-  try {
-    const content = await Bun.file(configPath).text();
-    const { parse } = await import('smol-toml');
-    const config = parse(content);
-    return (config.models as Record<string, string>) || {};
-  } catch (e: unknown) {
-    console.warn(
-      `Warning: could not parse ~/.config/whatcanirun/models.toml: ${e instanceof Error ? e.message : String(e)}`
-    );
-    return {};
-  }
 }
 
 export async function computeSha256(filePath: string): Promise<string> {
@@ -225,7 +247,7 @@ export async function inspectModel(modelRef: string): Promise<ModelInfo> {
     quant = inferQuant(modelRef);
     source = modelRef;
 
-    // Try to get metadata from HF cache
+    // Try to get metadata from HF cache.
     const cachePath = findHfCachePath(modelRef);
     if (cachePath) {
       sha256 = await computeDirSha256(cachePath);
@@ -241,9 +263,7 @@ export async function inspectModel(modelRef: string): Promise<ModelInfo> {
           }
         }
       } catch (e: unknown) {
-        console.warn(
-          `Warning: could not read model config: ${e instanceof Error ? e.message : String(e)}`
-        );
+        log.warn(`Could not read model config: ${e instanceof Error ? e.message : String(e)}`);
       }
     }
   } else {
@@ -261,12 +281,10 @@ export async function inspectModel(modelRef: string): Promise<ModelInfo> {
         fileSizeBytes = sumShardSizes(resolved);
       }
     } catch (e: unknown) {
-      console.warn(
-        `Warning: could not compute model hash/size: ${e instanceof Error ? e.message : String(e)}`
-      );
+      log.warn(`Could not compute model hash/size: ${e instanceof Error ? e.message : String(e)}`);
     }
 
-    // Try to read architecture and parameters from config.json
+    // Try to read architecture and parameters from `config.json`.
     try {
       const stat = statSync(resolved);
       const configPath = stat.isDirectory()
@@ -280,9 +298,7 @@ export async function inspectModel(modelRef: string): Promise<ModelInfo> {
         }
       }
     } catch (e: unknown) {
-      console.warn(
-        `Warning: could not read model config: ${e instanceof Error ? e.message : String(e)}`
-      );
+      log.warn(`Could not read model config: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 

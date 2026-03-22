@@ -1,3 +1,7 @@
+import chalk from 'chalk';
+
+import { warn } from '../utils/log';
+
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -30,7 +34,7 @@ export function formatSysinfo(device: DeviceInfo): string {
 export async function detectDevice(): Promise<DeviceInfo> {
   if (process.platform === 'darwin') return detectMacOS();
   if (process.platform === 'linux') return detectLinux();
-  throw new Error(`Unsupported platform: ${process.platform}`);
+  throw new Error(`Unsupported platform: ${chalk.cyan(process.platform)}.`);
 }
 
 // -----------------------------------------------------------------------------
@@ -43,16 +47,16 @@ async function exec(cmd: string[]): Promise<string> {
     const text = await new Response(proc.stdout).text();
     const code = await proc.exited;
     if (code !== 0) {
-      console.warn(`Warning: \`${cmd.join(' ')}\` exited with code ${code}`);
+      warn(`${chalk.bold.cyan(cmd.join(' '))} exited with code ${code}.`);
       return '';
     }
     return text.trim();
   } catch (e: unknown) {
     if (e instanceof Error && 'code' in e && (e as NodeJS.ErrnoException).code === 'ENOENT') {
-      console.warn(`Warning: command not found: ${cmd[0]}`);
+      warn(`Command not found: ${chalk.bold.cyan(cmd[0]!)}.`);
     } else {
-      console.warn(
-        `Warning: \`${cmd.join(' ')}\` failed: ${e instanceof Error ? e.message : String(e)}`
+      warn(
+        `${chalk.bold.cyan(cmd.join(' '))} failed: ${e instanceof Error ? e.message : String(e)}`
       );
     }
     return '';

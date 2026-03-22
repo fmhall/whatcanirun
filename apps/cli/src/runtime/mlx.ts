@@ -98,7 +98,7 @@ export class MlxAdapter implements RuntimeAdapter {
         buffer = lines.pop()!;
         for (const line of lines) {
           if (/warmup/i.test(line)) {
-            opts.onProgress?.('Warming up...');
+            opts.onProgress?.('Warming up…');
           } else {
             const trialMatch = line.match(/^\s*Trial\s+(\d+):/);
             if (trialMatch) {
@@ -132,7 +132,7 @@ export class MlxAdapter implements RuntimeAdapter {
           } else if (/Downloading|downloading/i.test(seg)) {
             // Per-file download — signal activity but don't extract percentage
             // to avoid overriding the overall Fetching progress.
-            opts.onProgress?.('Downloading model...');
+            opts.onProgress?.('Downloading model…');
           }
         }
       }
@@ -261,7 +261,7 @@ export class MlxAdapter implements RuntimeAdapter {
 
     if (trials.length !== numTrials) {
       warn(
-        `expected ${numTrials} trials but parsed ${trials.length}. Results will use the ${trials.length} trials that were parsed.`
+        `Expected ${numTrials} trials but parsed ${trials.length}. Results will use the ${trials.length} trials that were parsed.`
       );
     }
 

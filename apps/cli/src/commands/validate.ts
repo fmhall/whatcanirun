@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import { defineCommand } from 'citty';
 
 import { validateBundle } from '../bundle/validate';
@@ -25,15 +26,17 @@ const command = defineCommand({
       process.exit(1);
     }
 
-    log.info(`Validating: ${bundlePath}`);
+    const spinner = new log.Spinner(chalk.dim('Validating bundle…')).start();
     const result = await validateBundle(bundlePath);
 
     if (result.valid) {
-      log.success('Bundle is valid.');
+      spinner.stop(chalk.white(`[${chalk.green('✓')}] Bundle is valid.`));
     } else {
-      log.error('Bundle validation failed:');
+      spinner.stop(
+        chalk.white(`[${chalk.red('✖')}] ${chalk.bold.red('Bundle validation failed.')}`)
+      );
       for (const err of result.errors) {
-        log.error(`  ${err}`);
+        log.error(chalk.dim(err), { prefix: chalk.dim.red(' ↳ ') });
       }
       process.exit(1);
     }

@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import { defineCommand } from 'citty';
 
 import { validateBundle } from '../bundle/validate';
@@ -26,30 +27,32 @@ const command = defineCommand({
       process.exit(1);
     }
 
-    // Validate first
-    log.info('Validating bundle...');
+    // Validate bundle.
+    const validationSpinner = new log.Spinner(chalk.dim('Validating bundle…')).start();
     const validation = await validateBundle(bundlePath);
     if (!validation.valid) {
-      log.error('Bundle validation failed:');
+      validationSpinner.stop(
+        chalk.white(`[${chalk.red('✖')}] ${chalk.bold.red('Bundle validation failed.')}`)
+      );
       for (const err of validation.errors) {
-        log.error(`  ${err}`);
+        log.error(chalk.dim(err), { prefix: chalk.dim.red(' ↳ ') });
       }
       process.exit(1);
     }
-    log.success('Bundle is valid.');
-    log.blank();
+    validationSpinner.stop(chalk.white(`[${chalk.green('✓')}] Bundle is valid.`));
 
-    // Upload
-    log.info('Uploading...');
+    // Upload bundle.
+    const uploadSpinner = new log.Spinner(chalk.dim('Uploading bundle…')).start();
     try {
       const result = await uploadBundle(bundlePath);
-      log.blank();
-      log.header('Run created:');
-      console.log(result.run_url);
-      log.blank();
-      log.label('Status', result.status);
+      uploadSpinner.stop(
+        chalk.white(`[${chalk.green('✓')}] Uploaded run: ${chalk.underline(result.run_url)}`)
+      );
     } catch (e: unknown) {
-      log.error(`Upload failed: ${e instanceof Error ? e.message : String(e)}`);
+      uploadSpinner.stop(chalk.white(`[${chalk.red('✖')}] Run upload failed.`));
+      log.error(chalk.dim(e instanceof Error ? e.message : String(e)), {
+        prefix: chalk.dim.red(' ↳ '),
+      });
       process.exit(1);
     }
   },

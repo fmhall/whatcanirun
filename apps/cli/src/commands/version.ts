@@ -1,7 +1,6 @@
 import { HARNESS_VERSION } from '@whatcanirun/shared';
+import chalk from 'chalk';
 import { defineCommand } from 'citty';
-
-import * as log from '../utils/log';
 
 const command = defineCommand({
   meta: {
@@ -9,10 +8,7 @@ const command = defineCommand({
     description: 'Print version information',
   },
   run() {
-    log.blank();
-    log.header('whatcanirun');
-    log.label('Version', HARNESS_VERSION);
-    log.blank();
+    console.log(`${chalk.bold.blue(HARNESS_VERSION)} (whatcanirun)`);
   },
 });
 

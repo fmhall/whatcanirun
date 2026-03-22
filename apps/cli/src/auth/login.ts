@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import { randomBytes } from 'node:crypto';
 
 import { type AuthData, saveAuth } from './token';
@@ -12,7 +13,7 @@ const API_BASE = process.env.WCIR_API_URL || 'https://whatcani.run';
 // Functions
 // -----------------------------------------------------------------------------
 
-export async function loginViaBrowser(): Promise<AuthData> {
+export async function loginViaBrowser(onReady?: () => void): Promise<AuthData> {
   const state = randomBytes(32).toString('hex');
 
   return new Promise((resolve, reject) => {
@@ -72,7 +73,10 @@ export async function loginViaBrowser(): Promise<AuthData> {
     const browserProc = Bun.spawn([cmd, loginUrl], { stdout: 'ignore', stderr: 'ignore' });
     browserProc.exited.catch(() => {});
 
-    console.log(`If the browser didn't open, visit: ${loginUrl}`);
+    console.log();
+    console.log(chalk.white(`If the browser didn't open, visit: ${chalk.underline(loginUrl)}`));
+    console.log();
+    onReady?.();
 
     // Timeout after 5 minutes.
     const timeout = setTimeout(() => {
