@@ -45,7 +45,6 @@ export interface ResultTrial {
   total_ms: number;
   prefill_tps: number;
   decode_tps: number;
-  weighted_tps: number;
   idle_rss_mb: number;
   peak_rss_mb: number;
   exit_status: string;
@@ -56,7 +55,6 @@ export interface AggregateMetrics {
   ttft_p95_ms: number;
   decode_tps_mean: number;
   prefill_tps_mean: number;
-  weighted_tps_mean: number;
   idle_rss_mb: number;
   peak_rss_mb: number;
   trials_passed: number;
@@ -73,7 +71,6 @@ export interface DerivedMetrics {
   ttftP95Ms: number;
   decodeTpsMean: number;
   prefillTpsMean: number;
-  weightedTpsMean: number;
   idleRssMb: number;
   peakRssMb: number;
 }

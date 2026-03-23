@@ -95,12 +95,6 @@ export async function createBundle(opts: BundleOpts): Promise<string> {
       total_ms: ttft_ms + decode_ms,
       prefill_tps: t.promptTps,
       decode_tps: t.generationTps,
-      weighted_tps:
-        opts.bench.promptTokens + opts.bench.completionTokens > 0
-          ? (opts.bench.promptTokens * t.promptTps +
-              opts.bench.completionTokens * t.generationTps) /
-            (opts.bench.promptTokens + opts.bench.completionTokens)
-          : 0,
       idle_rss_mb: idleRssMb,
       peak_rss_mb: Math.round(t.peakMemoryGb * 1024 * 10) / 10,
       exit_status: 'ok',
@@ -112,7 +106,6 @@ export async function createBundle(opts: BundleOpts): Promise<string> {
     ttft_p95_ms: opts.metrics.ttftP95Ms,
     decode_tps_mean: opts.metrics.decodeTpsMean,
     prefill_tps_mean: opts.metrics.prefillTpsMean,
-    weighted_tps_mean: opts.metrics.weightedTpsMean,
     idle_rss_mb: opts.metrics.idleRssMb,
     peak_rss_mb: opts.metrics.peakRssMb,
     trials_passed: opts.bench.trials.length,

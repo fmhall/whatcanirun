@@ -404,7 +404,7 @@ function nearestRankPercentile(sorted: number[], p: number): number {
 }
 
 function computeMetrics(bench: BenchResult): DerivedMetrics {
-  const { promptTokens, completionTokens, trials, averages } = bench;
+  const { promptTokens, trials, averages } = bench;
 
   // Sort prompt TPS ascending (low TPS = high latency).
   const sortedPromptTps = trials.map((t) => t.promptTps).sort((a, b) => a - b);
@@ -419,16 +419,6 @@ function computeMetrics(bench: BenchResult): DerivedMetrics {
   const decodeTpsMean = Math.round(averages.generationTps * 10) / 10;
   const prefillTpsMean = Math.round(averages.promptTps * 10) / 10;
 
-  // Weighted TPS: `(prompt_tokens * prompt_tps + gen_tokens * gen_tps) / (prompt_tokens + gen_tokens)`.
-  const weightedTpsMean =
-    promptTokens + completionTokens > 0
-      ? Math.round(
-          ((promptTokens * averages.promptTps + completionTokens * averages.generationTps) /
-            (promptTokens + completionTokens)) *
-            10
-        ) / 10
-      : 0;
-
   const peakRssMb = Math.round(averages.peakMemoryGb * 1024 * 10) / 10;
   const idleRssMb = Math.round(averages.idleMemoryGb * 1024 * 10) / 10;
 
@@ -437,7 +427,6 @@ function computeMetrics(bench: BenchResult): DerivedMetrics {
     ttftP95Ms,
     decodeTpsMean,
     prefillTpsMean,
-    weightedTpsMean,
     idleRssMb,
     peakRssMb,
   };

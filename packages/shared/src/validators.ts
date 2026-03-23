@@ -121,7 +121,6 @@ export function validateResults(results: unknown): string[] {
       'total_ms',
       'prefill_tps',
       'decode_tps',
-      'weighted_tps',
       'idle_rss_mb',
       'peak_rss_mb',
       'exit_status',
