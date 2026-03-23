@@ -257,6 +257,9 @@ const command = defineCommand({
               ...(modelInfo.architecture
                 ? [['Architecture', modelInfo.architecture] as [string, string]]
                 : []),
+              ...(modelInfo.artifact_sha256
+                ? [['Hash', modelInfo.artifact_sha256.slice(0, 7)] as [string, string]]
+                : []),
             ];
             const maxModelKey = Math.max(...modelRows.map(([k]) => k.length));
             for (const [key, value] of modelRows) {
