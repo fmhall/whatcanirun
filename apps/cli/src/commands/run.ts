@@ -6,6 +6,7 @@ import { createBundle } from '../bundle/create';
 import { validateBundle } from '../bundle/validate';
 import { detectDevice } from '../device/detect';
 import {
+  type DownloadProgress,
   findHfCachePath,
   getHfCacheBlobSize,
   getHfRepoSize,
@@ -23,76 +24,48 @@ import * as log from '../utils/log';
 import { Spinner } from '../utils/log';
 
 // -----------------------------------------------------------------------------
-// Command
+// Types
 // -----------------------------------------------------------------------------
 
-const command = defineCommand({
-  meta: {
-    name: 'run',
-    description: 'Run a benchmark and optionally submit results',
-  },
-  args: {
-    model: {
-      type: 'string',
-      description: 'Hugging Face repo ID or local model path',
-      required: true,
-    },
-    runtime: {
-      type: 'string',
-      description: 'Runtime to use (mlx_lm, llama.cpp)',
-      required: true,
-    },
-    'prompt-tokens': {
-      type: 'string',
-      description: 'Prompt token count (default: 4,096)',
-    },
-    'gen-tokens': {
-      type: 'string',
-      description: 'Generation token count (default: 1,024)',
-    },
-    trials: {
-      type: 'string',
-      description: 'Number of trials (default: 10)',
-    },
-    notes: {
-      type: 'string',
-      description: 'Optional notes attached to the run',
-    },
-    submit: {
-      type: 'boolean',
-      description: 'Upload results after benchmark',
-      default: false,
-    },
-    output: {
-      type: 'string',
-      description: 'Bundle output directory (default: ~/.whatcanirun/bundles)',
-    },
-  },
-  async run({ args }) {
-    const promptTokens = parsePositiveInt(
-      (args['prompt-tokens'] as string) || '4096',
-      'prompt-tokens'
-    );
-    const genTokens = parsePositiveInt((args['gen-tokens'] as string) || '1024', 'gen-tokens');
-    const numTrials = parsePositiveInt((args.trials as string) || '10', 'trials');
-    const outputDir = (args.output as string) || DEFAULT_BUNDLES_DIR;
+export interface BenchmarkOpts {
+  model: string;
+  runtime: string;
+  promptTokens?: number;
+  genTokens?: number;
+  trials?: number;
+  notes?: string;
+  submit?: boolean;
+  output?: string;
+}
 
-    // Graceful Ctrl+C handling.
-    const controller = new AbortController();
-    let activeSpinner: log.Spinner | null = null;
-    let downloadPollCleanup: (() => void) | null = null;
+// -----------------------------------------------------------------------------
+// Core benchmark logic
+// -----------------------------------------------------------------------------
 
-    const onSigint = () => {
-      controller.abort();
-      downloadPollCleanup?.();
-      if (activeSpinner?.isRunning()) {
-        activeSpinner.stop(chalk.white(`[${chalk.gray('−')}] ${chalk.yellow('Interrupted ⚠')}`));
-      }
-      console.log();
-      process.exit(130);
-    };
-    process.on('SIGINT', onSigint);
+export async function executeBenchmark(opts: BenchmarkOpts): Promise<string> {
+  const promptTokens = opts.promptTokens ?? 4096;
+  const genTokens = opts.genTokens ?? 1024;
+  const numTrials = opts.trials ?? 10;
+  const outputDir = opts.output ?? DEFAULT_BUNDLES_DIR;
 
+  // Graceful Ctrl+C handling.
+  const controller = new AbortController();
+  let activeSpinner: log.Spinner | null = null;
+  let downloadPollCleanup: (() => void) | null = null;
+
+  let interrupted = false;
+  const onSigint = () => {
+    interrupted = true;
+    controller.abort();
+    downloadPollCleanup?.();
+    if (activeSpinner?.isRunning()) {
+      activeSpinner.stop(chalk.white(`[${chalk.gray('−')}] ${chalk.yellow('Interrupted ⚠')}`));
+    }
+    console.log();
+  };
+  process.on('SIGINT', onSigint);
+
+  try {
     // Detect device.
     const deviceSpinner = new log.Spinner(chalk.dim('Detecting device…')).start();
     activeSpinner = deviceSpinner;
@@ -106,11 +79,13 @@ const command = defineCommand({
         )
       );
     } catch (e: unknown) {
-      deviceSpinner.stop(chalk.white(`[${chalk.red('✖')}] Device detection failed.`));
-      log.error(chalk.dim(e instanceof Error ? e.message : String(e)), {
-        prefix: chalk.dim.red(' ↳ '),
-      });
-      process.exit(1);
+      if (!interrupted) {
+        deviceSpinner.stop(chalk.white(`[${chalk.red('✖')}] Device detection failed.`));
+        log.error(chalk.dim(e instanceof Error ? e.message : String(e)), {
+          prefix: chalk.dim.red(' ↳ '),
+        });
+      }
+      throw new Error('Device detection failed.');
     }
 
     // Resolve and detect runtime.
@@ -119,52 +94,70 @@ const command = defineCommand({
     let adapter;
     let runtimeInfo;
     try {
-      adapter = resolveRuntime(args.runtime as string);
+      adapter = resolveRuntime(opts.runtime);
       runtimeInfo = await adapter.detect();
       if (!runtimeInfo) {
         runtimeSpinner.stop(
           chalk.white(
-            `[${chalk.red('✖')}] Runtime "${chalk.cyan(args.runtime)}" is not available. Make sure it is installed and on ${chalk.cyan('PATH')}.`
+            `[${chalk.red('✖')}] Runtime "${chalk.cyan(opts.runtime)}" is not available. Make sure it is installed and on ${chalk.cyan('PATH')}.`
           )
         );
         const installHints: Record<string, string> = {
           mlx_lm: `Install with ${chalk.bold.cyan('brew install mlx-lm')} or ${chalk.bold.cyan('pip install mlx-lm')}.`,
           'llama.cpp': `Install with ${chalk.bold.cyan('brew install llama.cpp')}.`,
         };
-        const hint = installHints[args.runtime as string];
+        const hint = installHints[opts.runtime];
         if (hint) console.log(chalk.dim(` ↳ ${hint}`));
-        process.exit(1);
+        throw new Error(`Runtime "${opts.runtime}" is not available.`);
       }
       activeSpinner = null;
       runtimeSpinner.stop(
         chalk.white(
-          `[${chalk.green('✓')}] ${chalk.cyan(runtimeInfo.name)} (${chalk.cyan(runtimeInfo.version)}) detected.`
+          `[${chalk.green('✓')}] ${chalk.cyan(runtimeInfo.name)} (${chalk.cyan(runtimeInfo.version)}) found.`
         )
       );
     } catch (e: unknown) {
-      runtimeSpinner.stop(chalk.white(`[${chalk.red('✖')}] Runtime resolution failed.`));
-      log.error(chalk.dim(e instanceof Error ? e.message : String(e)), {
-        prefix: chalk.dim.red(' ↳ '),
-      });
-      process.exit(1);
+      if (!interrupted && runtimeSpinner.isRunning()) {
+        runtimeSpinner.stop(chalk.white(`[${chalk.red('✖')}] Runtime resolution failed.`));
+        log.error(chalk.dim(e instanceof Error ? e.message : String(e)), {
+          prefix: chalk.dim.red(' ↳ '),
+        });
+      }
+      throw e instanceof Error ? e : new Error(String(e));
     }
 
-    // Resolve and inspect model.
-    const modelInspectSpinner = new log.Spinner(chalk.dim('Inspecting model…')).start();
-    activeSpinner = modelInspectSpinner;
+    // Resolve model.
+    // - Local paths and bare HF repo IDs resolve instantly.
+    // - "repo:file.gguf" refs download the file first (with progress).
+    const modelSpinner = new log.Spinner(chalk.dim('Resolving model…')).start();
+    activeSpinner = modelSpinner;
     let modelRef: string;
     let modelInfoGuessed;
     try {
-      modelRef = await resolveModel(args.model as string);
+      modelRef = await resolveModel(opts.model, {
+        runtime: opts.runtime,
+        signal: controller.signal,
+        onDownloadProgress: ({ downloadedBytes, totalBytes }: DownloadProgress) => {
+          if (totalBytes) {
+            modelSpinner.setTotal(100, { percent: true });
+            modelSpinner.update(chalk.dim('Downloading model'));
+            const pct = Math.min(Math.round((downloadedBytes / totalBytes) * 100), 99);
+            modelSpinner.setCurrent(pct);
+            modelSpinner.setDetail(`${formatBytes(downloadedBytes)} / ${formatBytes(totalBytes)}`);
+          }
+        },
+      });
       modelInfoGuessed = inferModelFromName(modelRef);
       activeSpinner = null;
-      modelInspectSpinner.stop(chalk.white(`[${chalk.green('✓')}] Model inspected:`));
+      modelSpinner.stop(chalk.white(`[${chalk.green('✓')}] Model resolved:`));
     } catch (e: unknown) {
-      modelInspectSpinner.stop(chalk.white(`[${chalk.red('✖')}] Model not found.`));
-      log.error(chalk.dim(e instanceof Error ? e.message : String(e)), {
-        prefix: chalk.dim.red(' ↳ '),
-      });
-      process.exit(1);
+      if (!interrupted) {
+        modelSpinner.stop(chalk.white(`[${chalk.red('✖')}] Model resolution failed.`));
+        log.error(chalk.dim(e instanceof Error ? e.message : String(e)), {
+          prefix: chalk.dim.red(' ↳ '),
+        });
+      }
+      throw e instanceof Error ? e : new Error(String(e));
     }
 
     // Display config.
@@ -309,16 +302,18 @@ const command = defineCommand({
       );
     } catch (e: unknown) {
       stopDownloadPoll();
-      // Close whichever spinner is active.
-      if (benchSpinner.isRunning()) {
-        benchSpinner.stop(chalk.white(`[${chalk.red('✖')}] Benchmark failed.`));
-      } else {
-        resolveSpinner.stop(chalk.white(`[${chalk.red('✖')}] Model resolution failed.`));
+      if (!interrupted) {
+        // Close whichever spinner is active.
+        if (benchSpinner.isRunning()) {
+          benchSpinner.stop(chalk.white(`[${chalk.red('✖')}] Benchmark failed.`));
+        } else {
+          resolveSpinner.stop(chalk.white(`[${chalk.red('✖')}] Model resolution failed.`));
+        }
+        log.error(chalk.dim(e instanceof Error ? e.message : String(e)), {
+          prefix: chalk.dim.red(' ↳ '),
+        });
       }
-      log.error(chalk.dim(e instanceof Error ? e.message : String(e)), {
-        prefix: chalk.dim.red(' ↳ '),
-      });
-      process.exit(1);
+      throw e instanceof Error ? e : new Error(String(e));
     }
 
     // Compute derived metrics.
@@ -349,7 +344,7 @@ const command = defineCommand({
       model: modelInfo,
       bench,
       metrics,
-      notes: args.notes as string | undefined,
+      notes: opts.notes,
     });
 
     // Validate bundle.
@@ -363,14 +358,14 @@ const command = defineCommand({
       for (const err of validation.errors) {
         log.error(chalk.dim(err), { prefix: chalk.dim.red(' ↳ ') });
       }
-      process.exit(1);
+      throw new Error('Bundle validation failed.');
     }
     activeSpinner = null;
     validationSpinner.stop(chalk.white(`[${chalk.green('✓')}] Bundle is valid.`));
     console.log(chalk.dim(` ↳ Saved to ${log.filepath(bundlePath)}.`));
 
     // Upload bundle.
-    if (args.submit) {
+    if (opts.submit) {
       const uploadSpinner = new log.Spinner(chalk.dim('Uploading bundle…')).start();
       activeSpinner = uploadSpinner;
       try {
@@ -379,20 +374,92 @@ const command = defineCommand({
           chalk.white(`[${chalk.green('✓')}] Uploaded run: ${chalk.underline(result.run_url)}`)
         );
       } catch (e: unknown) {
-        uploadSpinner.stop(chalk.white(`[${chalk.red('✖')}] Run upload failed.`));
-        log.error(chalk.dim(e instanceof Error ? e.message : String(e)), {
-          prefix: chalk.dim.red(' ↳ '),
-        });
-        console.log();
-        console.log(
-          chalk.dim(
-            `You can submit with ${chalk.bold.cyan(`${binName()} submit ${log.filepath(bundlePath)}`)}.`
-          )
-        );
+        if (!interrupted) {
+          uploadSpinner.stop(chalk.white(`[${chalk.red('✖')}] Run upload failed.`));
+          log.error(chalk.dim(e instanceof Error ? e.message : String(e)), {
+            prefix: chalk.dim.red(' ↳ '),
+          });
+          console.log();
+          console.log(
+            chalk.dim(
+              `You can submit with ${chalk.bold.cyan(`${binName()} submit ${log.filepath(bundlePath)}`)}.`
+            )
+          );
+        }
       }
     }
 
+    return bundlePath;
+  } finally {
     process.off('SIGINT', onSigint);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Command
+// -----------------------------------------------------------------------------
+
+const command = defineCommand({
+  meta: {
+    name: 'run',
+    description: 'Run a benchmark and optionally submit results',
+  },
+  args: {
+    model: {
+      type: 'string',
+      description: 'Hugging Face repo ID or local model path',
+      required: true,
+    },
+    runtime: {
+      type: 'string',
+      description: 'Runtime to use (mlx_lm, llama.cpp)',
+      required: true,
+    },
+    'prompt-tokens': {
+      type: 'string',
+      description: 'Prompt token count (default: 4,096)',
+    },
+    'gen-tokens': {
+      type: 'string',
+      description: 'Generation token count (default: 1,024)',
+    },
+    trials: {
+      type: 'string',
+      description: 'Number of trials (default: 10)',
+    },
+    notes: {
+      type: 'string',
+      description: 'Optional notes attached to the run',
+    },
+    submit: {
+      type: 'boolean',
+      description: 'Upload results after benchmark',
+      default: false,
+    },
+    output: {
+      type: 'string',
+      description: 'Bundle output directory (default: ~/.whatcanirun/bundles)',
+    },
+  },
+  async run({ args }) {
+    try {
+      await executeBenchmark({
+        model: args.model as string,
+        runtime: args.runtime as string,
+        promptTokens: parsePositiveInt(
+          (args['prompt-tokens'] as string) || '4096',
+          'prompt-tokens'
+        ),
+        genTokens: parsePositiveInt((args['gen-tokens'] as string) || '1024', 'gen-tokens'),
+        trials: parsePositiveInt((args.trials as string) || '10', 'trials'),
+        notes: args.notes as string | undefined,
+        submit: args.submit as boolean,
+        output: args.output as string | undefined,
+      });
+      process.exit(0);
+    } catch {
+      process.exit(1);
+    }
   },
 });
 
@@ -441,13 +508,12 @@ function formatBytes(bytes: number): string {
   return `${Math.round(bytes / 1024)} KB`;
 }
 
-function parsePositiveInt(value: string, name: string): number {
+export function parsePositiveInt(value: string, name: string): number {
   const n = parseInt(value, 10);
   if (isNaN(n) || n <= 0) {
-    log.error(
+    throw new Error(
       `Invalid value for ${chalk.bold.cyan(`--${name}`)}: "${chalk.cyan(value)}". Expected a positive integer.`
     );
-    process.exit(1);
   }
   return n;
 }
