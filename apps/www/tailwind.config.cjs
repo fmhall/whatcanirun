@@ -36,6 +36,7 @@ module.exports = {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'bg-pulse': 'bg-pulse 2.5s cubic-bezier(.23,.68,.36,.96)',
+        'cursor-blink': 'cursor-blink 1s step-end infinite',
       },
       colors: {
         brand: '#00BBF2',
@@ -43,6 +44,7 @@ module.exports = {
       fontFamily: {
         sans: ['var(--font-inter)', ...fontFamily.sans],
         mono: ['var(--font-fira-code)', ...fontFamily.mono],
+        serpentine: ['var(--font-serpentine)', ...fontFamily.sans],
       },
       gridTemplateRows: {
         1: 'repeat(1, minmax(0, 1fr))',
@@ -65,6 +67,10 @@ module.exports = {
         'accordion-up': {
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' },
+        },
+        'cursor-blink': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0' },
         },
         'bg-pulse': {
           '0%': {

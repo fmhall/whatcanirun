@@ -13,14 +13,24 @@ import { auth } from '@/lib/auth';
 
 export type NavBarInternalProps = {
   user?: Session['user'];
+  loading?: boolean;
+};
+
+type NavBarFallbackProps = {
+  children?: React.ReactNode;
 };
 
 // -----------------------------------------------------------------------------
-// Component
+// Components
 // -----------------------------------------------------------------------------
 
-const NavBar: React.FC = async () => {
-  const user = (await auth.api.getSession({ headers: await headers() }))?.user;
+const NavBar: React.FC & { Fallback: React.FC<NavBarFallbackProps> } = async () => {
+  let user: Session['user'] | undefined;
+  try {
+    user = (await auth.api.getSession({ headers: await headers() }))?.user;
+  } catch {
+    // Render as logged out in case of failed database connection.
+  }
 
   return (
     <Fragment>
@@ -29,5 +39,20 @@ const NavBar: React.FC = async () => {
     </Fragment>
   );
 };
+
+const NavBarFallback: React.FC<NavBarFallbackProps> = () => {
+  return (
+    <Fragment>
+      <NavBarDesktop loading />
+      <NavBarMobile loading />
+    </Fragment>
+  );
+};
+
+// -----------------------------------------------------------------------------
+// Export
+// -----------------------------------------------------------------------------
+
+NavBar.Fallback = NavBarFallback;
 
 export default NavBar;

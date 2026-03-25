@@ -1,10 +1,11 @@
-import { relations } from 'drizzle-orm';
+import { count, countDistinct, eq, relations, sql } from 'drizzle-orm';
 import {
   bigint,
   boolean,
   index,
   integer,
   pgEnum,
+  pgMaterializedView,
   pgTable,
   real,
   text,
@@ -130,7 +131,17 @@ export const devices = pgTable(
     osVersion: text('os_version').notNull(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
-  (t) => [uniqueIndex('devices_dedup_idx').on(t.cpu, t.cpuCores, t.gpu, t.gpuCores, t.ramGb, t.osName, t.osVersion)],
+  (t) => [
+    uniqueIndex('devices_dedup_idx').on(
+      t.cpu,
+      t.cpuCores,
+      t.gpu,
+      t.gpuCores,
+      t.ramGb,
+      t.osName,
+      t.osVersion,
+    ),
+  ],
 );
 
 // -----------------------------------------------------------------------------
@@ -232,6 +243,51 @@ export const trials = pgTable(
 );
 
 // -----------------------------------------------------------------------------
+// Views
+// -----------------------------------------------------------------------------
+
+export const view__model_stats_by_device = pgMaterializedView('view__model_stats_by_device').as(
+  (qb) =>
+    qb
+      .select({
+        // Model
+        modelId: sql<string>`${models.id}`.as('model_id'),
+        modelDisplayName: models.displayName,
+        modelFormat: models.format,
+        modelParameters: models.parameters,
+        modelQuant: models.quant,
+        modelArchitecture: models.architecture,
+        // Device
+        deviceId: sql<string>`${devices.id}`.as('device_id'),
+        deviceOsName: devices.osName,
+        deviceCpu: devices.cpu,
+        deviceCpuCores: devices.cpuCores,
+        deviceGpu: devices.gpu,
+        deviceGpuCores: devices.gpuCores,
+        deviceRamGb: devices.ramGb,
+        // Stats
+        runtimeName: runs.runtimeName,
+        runCount: countDistinct(runs.id).as('run_count'),
+        trialCount: count(trials.id).as('trial_count'),
+        ttftP50Ms: sql<number>`PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ${trials.ttftMs})`.as(
+          'ttft_p50_ms',
+        ),
+        ttftP95Ms: sql<number>`PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY ${trials.ttftMs})`.as(
+          'ttft_p95_ms',
+        ),
+        avgDecodeTps: sql<number>`AVG(${trials.decodeTps})`.as('avg_decode_tps'),
+        avgPrefillTps: sql<number>`AVG(${trials.prefillTps})`.as('avg_prefill_tps'),
+        avgIdleRssMb: sql<number>`AVG(${trials.idleRssMb})`.as('avg_idle_rss_mb'),
+        avgPeakRssMb: sql<number>`AVG(${trials.peakRssMb})`.as('avg_peak_rss_mb'),
+      })
+      .from(trials)
+      .innerJoin(runs, eq(trials.runId, runs.id))
+      .innerJoin(models, eq(runs.modelId, models.id))
+      .innerJoin(devices, eq(runs.deviceId, devices.id))
+      .groupBy(models.id, devices.id, runs.runtimeName),
+);
+
+// -----------------------------------------------------------------------------
 // Relations
 // -----------------------------------------------------------------------------
 
@@ -258,9 +314,11 @@ export const trialsRelations = relations(trials, ({ one }) => ({
 // Types
 // -----------------------------------------------------------------------------
 
+// Tables
 export type User = typeof users.$inferSelect;
 export type ApiToken = typeof apiTokens.$inferSelect;
 export type Device = typeof devices.$inferSelect;
 export type Model = typeof models.$inferSelect;
 export type Run = typeof runs.$inferSelect;
 export type Trial = typeof trials.$inferSelect;
+// Views

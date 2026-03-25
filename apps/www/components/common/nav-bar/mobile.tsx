@@ -9,7 +9,7 @@ import clsx from 'clsx';
 import { LogOut, Menu } from 'lucide-react';
 
 import { signOut } from '@/lib/auth/client';
-import { ADMIN_PAGES, EXTERNAL_PAGES, NAVBAR_PAGES } from '@/lib/constants/site';
+import { EXTERNAL_PAGES, NAVBAR_PAGES } from '@/lib/constants/site';
 import { UserRole } from '@/lib/db/schema';
 import { useMediaQuery } from '@/lib/hooks';
 
@@ -17,7 +17,7 @@ import Logo from '@/components/common/logo';
 import UserAvatar from '@/components/templates/user-avatar';
 import { Badge, Button, Drawer, IconButton } from '@/components/ui';
 
-const NavBarMobile: React.FC<NavBarInternalProps> = ({ user }) => {
+const NavBarMobile: React.FC<NavBarInternalProps> = ({ user, loading = false }) => {
   const [open, setOpen] = useState<boolean>(false);
   const isSmallScreen = useMediaQuery('(max-width: 768px)'); // `md` breakpoint.
 
@@ -39,7 +39,9 @@ const NavBarMobile: React.FC<NavBarInternalProps> = ({ user }) => {
           }
           asChild={!user}
         >
-          {user ? (
+          {loading ? (
+            <div className="size-8 animate-pulse rounded-full border border-gray-6 bg-gray-5" />
+          ) : user ? (
             <UserAvatar className="border-0" image={user.image} name={user.name} size={32} />
           ) : (
             <IconButton variant="ghost">
@@ -117,39 +119,6 @@ const NavBarMobile: React.FC<NavBarInternalProps> = ({ user }) => {
             aria-hidden
           />
           <div className="hide-scrollbar flex flex-col">
-            {user?.role === UserRole.ADMIN ? (
-              <Fragment>
-                <div className="flex flex-col gap-1 p-2">
-                  {ADMIN_PAGES.map((page) => {
-                    const selected = selectedPage === page.slug;
-
-                    return (
-                      <Button
-                        key={page.slug}
-                        className={clsx(
-                          'w-full [&_[button-content]]:grow-[3] [&_[button-content]]:text-left [&_[button-right-icon]]:w-fit',
-                          selected ? 'bg-gray-5 text-gray-12' : '',
-                          !page.icon ? 'pl-[2.125rem]' : '',
-                        )}
-                        variant="ghost"
-                        href={page.slug}
-                        disabled={selected}
-                        leftIcon={page.icon}
-                        rightIcon={
-                          <Badge size="sm" variant="outline" intent="orange">
-                            Admin
-                          </Badge>
-                        }
-                        onClick={() => setOpen(false)}
-                      >
-                        {page.name}
-                      </Button>
-                    );
-                  })}
-                </div>
-                <hr className="border-0.5 w-full border-gray-6" role="separator" aria-hidden />
-              </Fragment>
-            ) : null}
             <div className="flex flex-col gap-1 p-2">
               {NAVBAR_PAGES.map((page) => {
                 const selected = selectedPage === page.slug;
