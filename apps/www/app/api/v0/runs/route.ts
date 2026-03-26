@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import type { Manifest, Results } from '@whatcanirun/shared';
 import { validateManifest, validateResults } from '@whatcanirun/shared';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { unzipSync } from 'fflate';
 
 import { db } from '@/lib/db';
@@ -220,11 +220,11 @@ export async function POST(request: NextRequest) {
       set: {
         displayName: modDisplayName,
         format: modFormat,
-        source: modSource,
-        fileSizeBytes: mod.file_size_bytes,
-        parameters: modParameters,
-        quant: modQuant,
-        architecture: modArchitecture,
+        source: sql`COALESCE(${modSource}, ${models.source})`,
+        fileSizeBytes: sql`COALESCE(${mod.file_size_bytes ?? null}, ${models.fileSizeBytes})`,
+        parameters: sql`COALESCE(${modParameters}, ${models.parameters})`,
+        quant: sql`COALESCE(${modQuant}, ${models.quant})`,
+        architecture: sql`COALESCE(${modArchitecture}, ${models.architecture})`,
       },
     })
     .returning({ id: models.id });

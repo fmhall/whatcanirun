@@ -12,6 +12,7 @@ import {
   getHfRepoSize,
   inferModelFromName,
   inspectModel,
+  isHuggingFaceFileRef,
   isHuggingFaceRepoId,
   resolveModel,
 } from '../model/resolve';
@@ -216,6 +217,14 @@ export async function executeBenchmark(opts: BenchmarkOpts): Promise<string> {
 
     // Re-inspect model now that cache is populated (reads real metadata).
     const modelInfo = await inspectModel(modelRef);
+
+    // Backfill source from the original ref (resolveModel returns a local path,
+    // which loses the HF origin).
+    if (!modelInfo.source) {
+      if (isHuggingFaceFileRef(opts.model) || isHuggingFaceRepoId(opts.model)) {
+        modelInfo.source = opts.model;
+      }
+    }
 
     // Run benchmark.
     let bench: BenchResult;
