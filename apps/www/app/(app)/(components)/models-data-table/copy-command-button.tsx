@@ -53,7 +53,12 @@ const CopyCommandButton: React.FC<CopyCommandButtonProps> = ({
   if (iconButton) {
     return (
       <div className="flex justify-end">
-        <Tooltip content="Copy command to run the benchmark" side="left" inverted={false}>
+        <Tooltip
+          content="Copy command to run the benchmark"
+          side="left"
+          inverted={false}
+          triggerProps={{ asChild: true }}
+        >
           <IconButton className={className} variant="outline" intent="none" onClick={copy}>
             {copied ? (
               <Check className="animate-in fade-in zoom-in" />
