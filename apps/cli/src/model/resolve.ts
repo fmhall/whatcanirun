@@ -257,11 +257,15 @@ async function downloadHfFile(
   });
 
   try {
-    await pipeline(Readable.fromWeb(body as any), progress, writer, { signal: opts?.signal });
+    await pipeline(Readable.fromWeb(body as ReadableStream<Uint8Array>), progress, writer, {
+      signal: opts?.signal,
+    });
     renameSync(tmpPath, destPath);
   } catch (e) {
     // Clean up partial temp file on failure.
-    try { unlinkSync(tmpPath); } catch {}
+    try {
+      unlinkSync(tmpPath);
+    } catch {}
     throw e;
   }
 
