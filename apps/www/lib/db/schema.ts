@@ -259,6 +259,7 @@ export const view__model_stats_by_device = pgMaterializedView('view__model_stats
         modelParameters: models.parameters,
         modelQuant: models.quant,
         modelArchitecture: models.architecture,
+        modelSource: models.source,
         // Device
         deviceChipId: devices.chipId,
         deviceCpu: sql<string>`MIN(${devices.cpu})`.as('device_cpu'),

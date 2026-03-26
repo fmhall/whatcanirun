@@ -3,6 +3,7 @@
 import { Fragment, useCallback, useMemo, useState } from 'react';
 
 import type { ModelsDataTableInternalProps } from '.';
+import CopyCommandButton from './copy-command-button';
 import type { ModelsDataTableValue } from './types';
 import { type ColumnDef, flexRender, useReactTable } from '@tanstack/react-table';
 import clsx from 'clsx';
@@ -280,6 +281,7 @@ const ModelsDataTableMobileSubComponent: React.FC<{ data: ModelsDataTableValue }
         <Stat.Name>Runs</Stat.Name>
         <Stat.Value className="tabular-nums">{Number(data.runCount).toLocaleString()}</Stat.Value>
       </Stat>
+      <CopyCommandButton className="col-span-2 w-full" row={data} iconButton={false} />
     </div>
   );
 };

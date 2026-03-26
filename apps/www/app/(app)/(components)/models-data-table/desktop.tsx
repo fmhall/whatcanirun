@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from 'react';
 
 import type { ModelsDataTableInternalProps } from '.';
+import CopyCommandButton from './copy-command-button';
 import type { ModelsDataTableValue } from './types';
 import { type ColumnDef, flexRender, useReactTable } from '@tanstack/react-table';
 import { Check, Copy, FileText } from 'lucide-react';
@@ -12,7 +13,7 @@ import { RUN_COMMAND } from '@/lib/constants/cli';
 import DataTableSortHeader from '@/components/templates/data-table-sort-header';
 import StateInfo from '@/components/templates/state-info';
 import { ModelTableCell, RuntimeTableCell } from '@/components/templates/table-cells';
-import { Button, Table, toast } from '@/components/ui';
+import { Button, IconButton, Table, toast } from '@/components/ui';
 
 const ModelsDataTableDesktop: React.FC<ModelsDataTableInternalProps> = (tableOptions) => {
   const [copied, setCopied] = useState<boolean>(false);
@@ -177,6 +178,17 @@ const ModelsDataTableDesktop: React.FC<ModelsDataTableInternalProps> = (tableOpt
           </div>
         ),
       },
+      {
+        id: 'actions',
+        header: () => <div className="flex justify-end">Actions</div>,
+        enableSorting: false,
+        cell: ({ row }) =>
+          row.original.modelSource ? (
+            <CopyCommandButton row={row.original} iconButton />
+          ) : (
+            <div className="flex justify-end italic text-gray-11">None</div>
+          ),
+      },
     ],
     [],
   );
@@ -246,6 +258,11 @@ const ModelsDataTableDesktop: React.FC<ModelsDataTableInternalProps> = (tableOpt
                   <div key={6} className="flex flex-col items-end gap-0.5">
                     <div className="h-[1.125rem] w-5 animate-pulse rounded bg-gray-9" />
                     <div className="h-4 w-8 animate-pulse rounded bg-gray-9" />
+                  </div>,
+                  <div key={7} className="flex justify-end">
+                    <IconButton variant="outline" disabled>
+                      <Copy />
+                    </IconButton>
                   </div>,
                 ].map((skeleton, i) => (
                   <Table.Cell key={i} className="first:pl-4 last:pr-4 md:first:pl-6 md:last:pr-6">
