@@ -136,7 +136,11 @@ export default async function Page({
   return (
     <ContainerLayout className="flex flex-col">
       <Hero />
-      <H2 className="mb-2">Models</H2>
+      <H2 className="mb-1">Models</H2>
+      <p className="mb-4 text-sm tabular-nums leading-normal text-gray-11 md:text-base">
+        Results include trials with <span className="tabular-nums">4,096</span> input tokens and{' '}
+        <span className="tabular-nums">1,024</span> output tokens only.
+      </p>
       <Suspense fallback={<ModelsDataTableSkeleton rowCount={25} />}>
         <ModelsDataTable
           data={data}

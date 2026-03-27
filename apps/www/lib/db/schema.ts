@@ -1,4 +1,4 @@
-import { count, countDistinct, eq, relations, sql } from 'drizzle-orm';
+import { and, count, countDistinct, eq, relations, sql } from 'drizzle-orm';
 import {
   bigint,
   boolean,
@@ -286,7 +286,13 @@ export const view__model_stats_by_device = pgMaterializedView('view__model_stats
       .innerJoin(runs, eq(trials.runId, runs.id))
       .innerJoin(models, eq(runs.modelId, models.id))
       .innerJoin(devices, eq(runs.deviceId, devices.id))
-      .where(eq(runs.status, RunStatus.VERIFIED))
+      .where(
+        and(
+          eq(runs.status, RunStatus.VERIFIED),
+          eq(trials.inputTokens, 4096),
+          eq(trials.outputTokens, 1024),
+        ),
+      )
       .groupBy(models.id, devices.chipId, runs.runtimeName),
 );
 

@@ -7,10 +7,11 @@ import CopyCommandButton from './copy-command-button';
 import type { ModelsDataTableValue } from './types';
 import { type ColumnDef, flexRender, useReactTable } from '@tanstack/react-table';
 import clsx from 'clsx';
-import { Check, ChevronRight, Copy, FileText } from 'lucide-react';
+import { Check, ChevronRight, Copy, FileText, Info } from 'lucide-react';
 
 import { RUN_COMMAND } from '@/lib/constants/cli';
 
+import ClickableTooltip from '@/components/templates/clickable-tooltip';
 import DataTableSortHeader from '@/components/templates/data-table-sort-header';
 import Stat from '@/components/templates/stat';
 import StateInfo from '@/components/templates/state-info';
@@ -246,7 +247,23 @@ const ModelsDataTableMobileSubComponent: React.FC<{ data: ModelsDataTableValue }
         </Stat.Value>
       </Stat>
       <Stat className="col-span-1">
-        <Stat.Name>TTFT</Stat.Name>
+        <Stat.Name className="w-fit transition-colors hover:text-gray-12">
+          <ClickableTooltip
+            content={
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-12">Time to first token</span>
+                <span className="text-xs leading-normal text-gray-11">
+                  p50 time taken to generate the first output token.
+                </span>
+              </div>
+            }
+          >
+            <div className="flex items-center gap-1">
+              <span className="leading-4">TTFT</span>
+              <Info className="size-3" />
+            </div>
+          </ClickableTooltip>
+        </Stat.Name>
         {data.ttftP50Ms < 4_000 ? (
           <Stat.Value className="tabular-nums">
             {Number(data.ttftP50Ms).toLocaleString(undefined, {

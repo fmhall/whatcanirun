@@ -120,6 +120,14 @@ const ModelsDataTableDesktop: React.FC<ModelsDataTableInternalProps> = (tableOpt
           <DataTableSortHeader
             className="ml-auto w-fit"
             column={column}
+            description={
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-12">Time to first token</span>
+                <span className="text-xs leading-normal text-gray-11">
+                  p50 time taken to generate the first output token.
+                </span>
+              </div>
+            }
             lowLabel="Fast"
             highLabel="Slow"
           >

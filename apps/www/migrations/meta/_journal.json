@@ -162,6 +162,13 @@
       "when": 1774567675232,
       "tag": "0022_fast_maddog",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1774587373789,
+      "tag": "0023_glorious_newton_destine",
+      "breakpoints": true
     }
   ]
 }
