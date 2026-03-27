@@ -213,6 +213,8 @@ const SubItems: React.FC<{ items: SubItem[] }> = ({ items }) => {
 const AnimatedCliDemo: React.FC = () => {
   const [copied, setCopied] = useState<boolean>(false);
   const [pikachuRuns, setPikachuRuns] = useState<number[]>([]);
+  const [trackWidth, setTrackWidth] = useState(512);
+  const trackRef = useRef<HTMLDivElement>(null);
   const pikachuCounter = useRef(0);
   // State
   const [typedChars, setTypedChars] = useState<number>(0);
@@ -228,6 +230,14 @@ const AnimatedCliDemo: React.FC = () => {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const prefersReducedMotion = useRef(false);
+
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setTrackWidth(entry.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Check reduced motion on mount.
   useEffect(() => {
@@ -477,8 +487,11 @@ const AnimatedCliDemo: React.FC = () => {
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-6 bg-gray-2 shadow-lg">
-      <div className="relative flex h-9 items-center justify-between overflow-hidden border-b border-gray-6 bg-gray-1 pl-3 pr-1.5">
-        <PikachuRunner runKeys={pikachuRuns} onComplete={removePikachu} />
+      <div
+        ref={trackRef}
+        className="relative flex h-9 items-center justify-between overflow-hidden border-b border-gray-6 bg-gray-1 pl-3 pr-1.5"
+      >
+        <PikachuRunner runKeys={pikachuRuns} trackLength={trackWidth} onComplete={removePikachu} />
         <div className="z-10 flex gap-2">
           <span className="size-3 rounded-full bg-[#FF5F57]" />
           <span className="size-3 rounded-full bg-[#FFBD2E]" />

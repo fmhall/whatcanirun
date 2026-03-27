@@ -26,9 +26,10 @@ const GIF_PARTS = [
 
 const PikachuRunner: React.FC<{
   runKeys: number[];
+  trackLength: number;
   // eslint-disable-next-line
   onComplete: (key: number) => void;
-}> = ({ runKeys, onComplete }) => {
+}> = ({ runKeys, trackLength, onComplete }) => {
   const parts = useMemo(
     () => GIF_PARTS.map((part) => Uint8Array.from(Buffer.from(part, 'hex'))),
     [],
@@ -38,7 +39,7 @@ const PikachuRunner: React.FC<{
     <Fragment>
       {runKeys.map((k) => {
         const random = 2 * (((k * 0x9e3779b1) >>> 0) / 0x100000000);
-        const duration = 3 + random; // [2, 4).
+        const duration = (3 + random) * (trackLength / 512); // [2, 4) scaled to track width.
         const frameLength = Math.round(6 + random * 2); // Add 2 centiseconds every 1s in duration.
 
         let gifSrc: string;
