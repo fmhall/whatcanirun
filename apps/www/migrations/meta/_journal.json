@@ -183,6 +183,27 @@
       "when": 1774666060058,
       "tag": "0025_tired_red_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1774717875385,
+      "tag": "0026_far_scarlet_spider",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1774718021491,
+      "tag": "0027_slim_wilson_fisk",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1774719163568,
+      "tag": "0028_bouncy_silver_surfer",
+      "breakpoints": true
     }
   ]
 }

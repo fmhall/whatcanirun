@@ -1,10 +1,11 @@
 import { Fragment } from 'react';
 
 import clsx from 'clsx';
-import { ArrowUpRight, Cpu, Layers, Waypoints } from 'lucide-react';
+import { ArrowUpRight, Cpu, HardDrive, Layers } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 
 import type { Model, Organization, Run } from '@/lib/db/schema';
+import { formatBytes } from '@/lib/utils';
 
 import ClickableTooltip from '@/components/templates/clickable-tooltip';
 import UserAvatar from '@/components/templates/user-avatar';
@@ -16,7 +17,7 @@ import { Tooltip } from '@/components/ui';
 
 type ModelTableCellProps = Pick<
   Model,
-  'displayName' | 'quant' | 'parameters' | 'architecture' | 'source'
+  'displayName' | 'quant' | 'architecture' | 'source' | 'fileSizeBytes'
 > &
   Pick<Run, 'runtimeName'> & {
     lab?: Pick<Organization, 'name' | 'logoUrl'>;
@@ -28,10 +29,10 @@ type ModelTableCellProps = Pick<
 const ModelTableCell: React.FC<ModelTableCellProps> & { Skeleton: React.FC } = ({
   displayName,
   quant,
-  parameters,
   architecture,
   source,
   runtimeName,
+  fileSizeBytes,
   lab,
 }) => {
   let url = '';
@@ -79,9 +80,9 @@ const ModelTableCell: React.FC<ModelTableCellProps> & { Skeleton: React.FC } = (
             content: 'Quantization',
           },
           {
-            icon: <Waypoints />,
-            value: parameters,
-            content: 'Parameters',
+            icon: <HardDrive />,
+            value: fileSizeBytes ? formatBytes(fileSizeBytes) : null,
+            content: 'File size',
           },
 
           {
@@ -130,7 +131,7 @@ const ModelTableCellSkeleton: React.FC = () => {
       <div className="mt-0 flex h-4 gap-2">
         {[
           { icon: <Layers />, className: 'w-7' },
-          { icon: <Waypoints />, className: 'w-6' },
+          { icon: <HardDrive />, className: 'w-6' },
           { icon: <Cpu />, className: 'w-12' },
         ].map(({ icon, className }, index) => {
           return (

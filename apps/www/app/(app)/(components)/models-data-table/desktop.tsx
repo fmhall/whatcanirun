@@ -49,10 +49,10 @@ const ModelsDataTableDesktop: React.FC<ModelsDataTableInternalProps> = (tableOpt
           <ModelTableCell
             displayName={row.original.modelDisplayName}
             quant={row.original.modelQuant}
-            parameters={row.original.modelParameters}
             architecture={row.original.modelArchitecture}
             source={row.original.modelSource}
             runtimeName={row.original.runtimeName}
+            fileSizeBytes={row.original.modelFileSizeBytes}
             lab={
               row.original.labName
                 ? { name: row.original.labName, logoUrl: row.original.labLogoUrl }

@@ -191,6 +191,7 @@ export const modelsInfo = pgTable(
     quantizedById: text('quantized_by_id').references(() => organizations.id),
     // Overrides `models` column values
     name: text('name'),
+    source: text('source'),
     fileSizeBytes: bigint('file_size_bytes', { mode: 'number' }),
     parameters: text('parameters'),
     quant: text('quant'),
@@ -308,6 +309,11 @@ export const view__model_stats_by_device = pgMaterializedView('view__model_stats
             'model_display_name',
           ),
         modelFormat: models.format,
+        modelFileSizeBytes: sql<
+          number | null
+        >`COALESCE(NULLIF(MIN(${modelsInfo.fileSizeBytes}), 0), ${models.fileSizeBytes})`.as(
+          'model_file_size_bytes',
+        ),
         modelParameters: sql<
           string | null
         >`COALESCE(NULLIF(MIN(${modelsInfo.parameters}), ''), ${models.parameters})`.as(
@@ -321,7 +327,9 @@ export const view__model_stats_by_device = pgMaterializedView('view__model_stats
         >`COALESCE(NULLIF(MIN(${modelsInfo.architecture}), ''), ${models.architecture})`.as(
           'model_architecture',
         ),
-        modelSource: models.source,
+        modelSource: sql<
+          string | null
+        >`COALESCE(NULLIF(MIN(${modelsInfo.source}), ''), ${models.source})`.as('model_source'),
         // Organization
         labName: sql<string | null>`MIN(${labOrg.name})`.as('lab_name'),
         labLogoUrl: sql<string | null>`MIN(${labOrg.logoUrl})`.as('lab_logo_url'),
