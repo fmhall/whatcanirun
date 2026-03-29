@@ -27,7 +27,7 @@ const Logo: React.FC<LogoProps> = ({ className, ...rest }) => {
       href="/"
       {...rest}
     >
-      <span className="font-serpentine pr-[0.1em]">whatcani.run</span>
+      <span className="pr-[0.1em] font-serpentine">whatcani.run</span>
     </Link>
   );
 };

@@ -54,7 +54,20 @@ const ModelsDataTableMobile: React.FC<ModelsDataTableInternalProps> = (tableOpti
             fileSizeBytes={row.original.modelFileSizeBytes}
             lab={
               row.original.labName
-                ? { name: row.original.labName, logoUrl: row.original.labLogoUrl }
+                ? {
+                    name: row.original.labName,
+                    logoUrl: row.original.labLogoUrl,
+                    websiteUrl: row.original.labWebsiteUrl,
+                  }
+                : undefined
+            }
+            quantizedBy={
+              row.original.quantizedByName
+                ? {
+                    name: row.original.quantizedByName,
+                    logoUrl: row.original.quantizedByLogoUrl,
+                    websiteUrl: row.original.quantizedByWebsiteUrl,
+                  }
                 : undefined
             }
           />

@@ -9,7 +9,6 @@ import { formatBytes } from '@/lib/utils';
 
 import ClickableTooltip from '@/components/templates/clickable-tooltip';
 import UserAvatar from '@/components/templates/user-avatar';
-import { Tooltip } from '@/components/ui';
 
 // -----------------------------------------------------------------------------
 // Props
@@ -20,7 +19,8 @@ type ModelTableCellProps = Pick<
   'displayName' | 'quant' | 'architecture' | 'source' | 'fileSizeBytes'
 > &
   Pick<Run, 'runtimeName'> & {
-    lab?: Pick<Organization, 'name' | 'logoUrl'>;
+    lab?: Pick<Organization, 'name' | 'logoUrl' | 'websiteUrl'>;
+    quantizedBy?: Pick<Organization, 'name' | 'logoUrl' | 'websiteUrl'>;
   };
 // -----------------------------------------------------------------------------
 // Component
@@ -34,6 +34,7 @@ const ModelTableCell: React.FC<ModelTableCellProps> & { Skeleton: React.FC } = (
   runtimeName,
   fileSizeBytes,
   lab,
+  quantizedBy,
 }) => {
   let url = '';
   if (runtimeName === 'mlx_lm') {
@@ -61,15 +62,99 @@ const ModelTableCell: React.FC<ModelTableCellProps> & { Skeleton: React.FC } = (
         ) : (
           <span className="line-clamp-1 leading-5">{displayName}</span>
         )}
-        {lab?.logoUrl ? (
-          <Tooltip content={lab.name} triggerProps={{ className: 'rounded-full' }} inverted={false}>
+        {lab?.logoUrl && quantizedBy?.logoUrl ? (
+          <ClickableTooltip
+            className="min-w-fit"
+            content={
+              <span className="whitespace-nowrap text-gray-11">
+                Base model by{' '}
+                {lab.websiteUrl ? (
+                  <a
+                    className="inline-flex items-center gap-1 align-[-2px] text-gray-11 underline decoration-dotted transition-colors hover:text-gray-12"
+                    href={lab.websiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <UserAvatar image={lab.logoUrl} name={lab.name} size={16} />
+                    <span className="flex">
+                      {lab.name}
+                      <ArrowUpRight className="size-3 text-gray-11" />
+                    </span>
+                  </a>
+                ) : (
+                  <span className="inline-flex items-center gap-1 align-[-2px] text-gray-11">
+                    <UserAvatar image={lab.logoUrl} name={lab.name} size={16} />
+                    {lab.name}
+                  </span>
+                )}{' '}
+                <br />
+                Quantized by{' '}
+                {quantizedBy.websiteUrl ? (
+                  <a
+                    className="inline-flex items-center gap-1 align-[-2px] text-gray-11 underline decoration-dotted transition-colors hover:text-gray-12"
+                    href={quantizedBy.websiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <UserAvatar image={quantizedBy.logoUrl} name={quantizedBy.name} size={16} />
+                    <span className="flex">
+                      {quantizedBy.name}
+                      <ArrowUpRight className="size-3 text-gray-11" />
+                    </span>
+                  </a>
+                ) : (
+                  <span className="inline-flex items-center gap-1 align-[-2px] text-gray-11">
+                    <UserAvatar image={quantizedBy.logoUrl} name={quantizedBy.name} size={16} />
+                    {quantizedBy.name}
+                  </span>
+                )}
+              </span>
+            }
+            triggerProps={{ className: 'rounded-full' }}
+          >
+            <UserAvatar
+              className="border-gray-7 transition-colors hover:border-gray-8"
+              image={lab.logoUrl}
+              name={lab.name}
+              size={18}
+              icon={<UserAvatar image={quantizedBy.logoUrl} name={quantizedBy.name} size={12} />}
+            />
+          </ClickableTooltip>
+        ) : lab?.logoUrl && !quantizedBy?.logoUrl ? (
+          <ClickableTooltip
+            content={
+              <span className="text-gray-11">
+                Base model by{' '}
+                {lab.websiteUrl ? (
+                  <a
+                    className="inline-flex items-center gap-1 align-[-2px] text-gray-11 underline decoration-dotted transition-colors hover:text-gray-12"
+                    href={lab.websiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <UserAvatar image={lab.logoUrl} name={lab.name} size={16} />
+                    <span className="flex">
+                      {lab.name}
+                      <ArrowUpRight className="size-3 text-gray-11" />
+                    </span>
+                  </a>
+                ) : (
+                  <span className="inline-flex items-center gap-1 align-[-2px] text-gray-11">
+                    <UserAvatar image={lab.logoUrl} name={lab.name} size={16} />
+                    {lab.name}
+                  </span>
+                )}
+              </span>
+            }
+            triggerProps={{ className: 'rounded-full' }}
+          >
             <UserAvatar
               className="border-gray-7 transition-colors hover:border-gray-8"
               image={lab.logoUrl}
               name={lab.name}
               size={18}
             />
-          </Tooltip>
+          </ClickableTooltip>
         ) : null}
       </div>
       <div className="mt-0 flex h-4 gap-2">

@@ -333,9 +333,13 @@ export const view__model_stats_by_device = pgMaterializedView('view__model_stats
         // Organization
         labName: sql<string | null>`MIN(${labOrg.name})`.as('lab_name'),
         labLogoUrl: sql<string | null>`MIN(${labOrg.logoUrl})`.as('lab_logo_url'),
+        labWebsiteUrl: sql<string | null>`MIN(${labOrg.websiteUrl})`.as('lab_website_url'),
         quantizedByName: sql<string | null>`MIN(${quantOrg.name})`.as('quantized_by_name'),
         quantizedByLogoUrl: sql<string | null>`MIN(${quantOrg.logoUrl})`.as(
           'quantized_by_logo_url',
+        ),
+        quantizedByWebsiteUrl: sql<string | null>`MIN(${quantOrg.websiteUrl})`.as(
+          'quantized_by_website_url',
         ),
         // Device
         deviceChipId: devices.chipId,
