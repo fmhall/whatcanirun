@@ -40,6 +40,8 @@ const formatCpu = (name: string) => name.replace(/^\S+\s+/, '');
 // -----------------------------------------------------------------------------
 
 const HeroHeading: React.FC<{ chips: ChipOption[] }> = ({ chips }) => {
+  const [, setPagination] = useQueryState('pagination', { shallow: false });
+  const [, setSorting] = useQueryState('sorting', { shallow: false });
   // Default to the chip with the most models, then hardcoded fallback.
   const defaultDevice = useMemo(() => {
     const sorted = [...chips].sort((a, b) => b.modelCount - a.modelCount);
@@ -78,7 +80,11 @@ const HeroHeading: React.FC<{ chips: ChipOption[] }> = ({ chips }) => {
       <DeviceCombobox
         devices={chipsSorted}
         value={device}
-        onSelect={(chipId: string) => setDevice(chipId)}
+        onSelect={(chipId: string) => {
+          setDevice(chipId);
+          setPagination(null);
+          setSorting(null);
+        }}
       >
         <InlineButton className="-mx-[0.1em] rounded-xl border border-dashed border-gray-7 bg-gray-3 box-decoration-clone px-[0.1em] font-semibold text-gray-12 transition-colors hover:border-gray-8 hover:bg-gray-4 focus-visible:border-gray-8 focus-visible:bg-gray-4 active:bg-gray-5">
           {displayName}
