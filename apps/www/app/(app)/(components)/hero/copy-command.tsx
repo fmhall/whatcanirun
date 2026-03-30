@@ -28,7 +28,7 @@ const HeroCopyCommandButton: React.FC = () => {
         setCopied(true);
         toast({
           title: 'Copied command to clipboard.',
-          description: RUN_COMMAND,
+          description: <span className="select-all font-mono">{RUN_COMMAND}</span>,
           intent: 'success',
           hasCloseButton: true,
         });

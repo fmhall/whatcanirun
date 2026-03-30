@@ -32,18 +32,13 @@ const CopyCommandButton: React.FC<CopyCommandButtonProps> = ({
 
   const copy = () => {
     if (copied) return;
-    navigator.clipboard.writeText(
-      `npx whatcanirun@latest run --model ${source} --runtime ${row.runtimeName} --submit`,
-    );
+
+    const command = `npx whatcanirun@latest run --model ${source} --runtime ${row.runtimeName} --submit`;
+    navigator.clipboard.writeText(command);
     setCopied(true);
     toast({
       title: 'Copied command to clipboard.',
-      description: (
-        <span>
-          <span className="select-all font-medium">{source}</span> via{' '}
-          <span className="select-all font-medium">{row.runtimeName}</span>.
-        </span>
-      ),
+      description: <span className="select-all font-mono">{command}</span>,
       intent: 'success',
       hasCloseButton: true,
     });
