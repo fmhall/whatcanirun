@@ -1,11 +1,49 @@
-import { FileCog } from 'lucide-react';
-
 import Logo from '@/components/common/logo';
 import LogoIcon from '@/components/common/logo-icon';
 
 # Docs
 
-<Logo className="inline text-base select-text no-underline hover:underline" /> documentation.
+<Logo className="inline text-base select-text no-underline hover:underline" /> is a platform for finding the best models and how to run them locally, based on real benchmark data.
+The goal is to simplify the process of picking and running a model locally and help answer questions like:
+- What model should I use for &lt;task&gt;? What quantization/format/runtime?
+- How should I configure the model?
+- What performance will I get?
+- What device should I buy/use?
+- How do devices compare against each other on &lt;metric&gt;?
+
+## How it Works
+
+1. People run and submit benchmarks via the [CLI](https://npmjs.com/package/whatcanirun).
+2. Results are sanity-checked and approved/rejected.
+3. Stats are aggregated across models/devices and displayed [here](/).
+
+## Submitting Benchmarks
+
+Benchmarks are submitted via the [CLI](https://npmjs.com/package/whatcanirun):
+
+```bash fileName="Install whatcanirun CLI" showLineNumbers={false}
+bun install -g whatcanirun # or `bunx whatcanirun`
+```
+
+To submit a benchmark, run `whatcanirun` for interactive mode or:
+
+```bash fileName="Submit a benchmark" showLineNumbers={false}
+whatcanirun run --model $MODEL_PATH_OR_HF_REFERENCE --runtime $RUNTIME --submit
+```
+
+If the model is not found on your device, it&apos;ll be automatically downloaded from [Hugging Face](https://huggingface.co).
+Note that [llama.cpp](https://github.com/ggerganov/llama.cpp) and [MLX](https://github.com/ml-explore/mlx) are currently the only runtimes supported.
+See the [README.md](https://github.com/fiveoutofnine/whatcanirun/blob/main/apps/cli/README.md) for more details.
+
+<Callout size="sm" intent="info">
+  You can optionally link your runs to an account by [logging in here](/login?redirect=/docs), then running `whatcanirun auth login`.
+</Callout>
+
+## Contributing
+
+The project is [open-source](https://github.com/fiveoutofnine/whatcanirun).
+Any contributions are welcome.
+See the [README.md](https://github.com/fiveoutofnine/whatcanirun/blob/main/README.md) for local development setup.
 
 ## Contact
 
