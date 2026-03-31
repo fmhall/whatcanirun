@@ -3,7 +3,7 @@ import { unstable_cache as cache } from 'next/cache';
 import { count, countDistinct, sum } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { runs, trials } from '@/lib/db/schema';
+import { devices, runs, trials } from '@/lib/db/schema';
 
 // -----------------------------------------------------------------------------
 // Component
@@ -21,7 +21,7 @@ const HeroDescription: React.FC & { Fallback: React.FC } = async () => {
             })
             .from(runs),
           db.select({ trialsCount: count() }).from(trials),
-          db.select({ uniqueDevicesCount: countDistinct(runs.deviceId) }).from(runs),
+          db.select({ uniqueDevicesCount: countDistinct(devices.chipId) }).from(devices),
         ]),
       ['overview-stats'],
       { tags: ['overview-stats'], revalidate: 600 },
