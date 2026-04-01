@@ -1,6 +1,7 @@
 import type { DerivedMetrics } from '@whatcanirun/shared';
 import chalk from 'chalk';
 import { defineCommand } from 'citty';
+import { dirname } from 'node:path';
 
 import { createBundle } from '../bundle/create';
 import { validateBundle } from '../bundle/validate';
@@ -133,12 +134,14 @@ export async function executeBenchmark(opts: BenchmarkOpts): Promise<string> {
     const modelSpinner = new log.Spinner(chalk.dim('Resolving model…')).start();
     activeSpinner = modelSpinner;
     let modelRef: string;
+    let modelDownloaded = false;
     let modelInfoGuessed;
     try {
       modelRef = await resolveModel(opts.model, {
         runtime: opts.runtime,
         signal: controller.signal,
         onDownloadProgress: ({ downloadedBytes, totalBytes }: DownloadProgress) => {
+          modelDownloaded = true;
           if (totalBytes) {
             modelSpinner.setTotal(100, { percent: true });
             modelSpinner.update(chalk.dim('Downloading model'));
@@ -175,6 +178,9 @@ export async function executeBenchmark(opts: BenchmarkOpts): Promise<string> {
       console.log(
         chalk.dim(` →  ${key.padEnd(maxKey)}  ${chalk.reset.cyan(value)} ${chalk.dim('(guessed)')}`)
       );
+    }
+    if (modelDownloaded) {
+      console.log(chalk.dim(` ↳  Cached at ${log.filepath(modelRef)}.`));
     }
 
     // Resolve model (download or load from cache).
@@ -267,6 +273,14 @@ export async function executeBenchmark(opts: BenchmarkOpts): Promise<string> {
             for (const [key, value] of modelRows) {
               console.log(chalk.dim(` →  ${key.padEnd(maxModelKey)}  ${chalk.reset.cyan(value)}`));
             }
+            if (!isCached) {
+              const cachePath = findHfCachePath(modelRef);
+              if (cachePath) {
+                console.log(
+                  chalk.dim(` ↳  Cached at ${log.filepath(dirname(dirname(cachePath)))}.`)
+                );
+              }
+            }
 
             benchSpinner.start();
             activeSpinner = benchSpinner;
@@ -301,6 +315,12 @@ export async function executeBenchmark(opts: BenchmarkOpts): Promise<string> {
           ? `${chalk.cyan(modelInfo.display_name)} loaded from disk.`
           : `${chalk.cyan(modelInfo.display_name)} downloaded.`;
         resolveSpinner.stop(chalk.white(`[${chalk.green('✓')}] ${resolveLabel}`));
+        if (!isCached) {
+          const cachePath = findHfCachePath(modelRef);
+          if (cachePath) {
+            console.log(chalk.dim(` ↳  Cached at ${log.filepath(dirname(dirname(cachePath)))}.`));
+          }
+        }
       }
 
       activeSpinner = null;
