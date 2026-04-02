@@ -1,35 +1,41 @@
 [
   {
-    "displayName": "Qwen-3.5-0.8B (4-bit)",
-    "hfRepoId": "mlx-community/Qwen3.5-0.8B-OptiQ-4bit",
+    "displayName": "Gemma 4 E4B Instruct (4-bit)",
+    "hfRepoId": "/mlx-community/gemma-4-e4b-it-4bit",
     "runtime": "mlx_lm"
   },
   {
-    "displayName": "Qwen-3.5-4B (4-bit)",
-    "hfRepoId": "mlx-community/Qwen3.5-4B-MLX-4bit",
+    "displayName": "Gemma 4 E4B Instruct (8-bit)",
+    "hfRepoId": "/mlx-community/gemma-4-e4b-it-8bit",
     "runtime": "mlx_lm"
   },
   {
-    "displayName": "Qwen-3.5-9B (4-bit)",
-    "hfRepoId": "mlx-community/Qwen3.5-9B-MLX-4bit",
+    "displayName": "Gemma 4 31B Instruct (4-bit)",
+    "hfRepoId": "mlx-community/gemma-4-31b-it-4bit",
     "runtime": "mlx_lm"
   },
   {
-    "displayName": "Qwen-3.5-0.8B (Q4_K_M)",
-    "hfRepoId": "unsloth/Qwen3.5-0.8B-GGUF",
-    "hfFileName": "Qwen3.5-0.8B-Q4_K_M.gguf",
+    "displayName": "Gemma 4 E2B Instruct (Q4_K_M)",
+    "hfRepoId": "unsloth/gemma-4-E2B-it-GGUF",
+    "hfFileName": "gemma-4-E2B-it-Q4_K_M.gguf",
     "runtime": "llama.cpp"
   },
   {
-    "displayName": "Qwen-3.5-4B (Q4_K_M)",
-    "hfRepoId": "unsloth/Qwen3.5-4B-GGUF",
-    "hfFileName": "Qwen3.5-4B-Q4_K_M.gguf",
+    "displayName": "Gemma 4 E4B Instruct (Q4_K_M)",
+    "hfRepoId": "unsloth/gemma-4-E4B-it-GGUF",
+    "hfFileName": "gemma-4-E4B-it-Q4_K_M.gguf",
     "runtime": "llama.cpp"
   },
   {
-    "displayName": "Qwen-3.5-9B (Q4_K_M)",
-    "hfRepoId": "unsloth/Qwen3.5-9B-GGUF",
-    "hfFileName": "Qwen3.5-9B-Q4_K_M.gguf",
+    "displayName": "Gemma 4 26B-A4B Instruct (Q4_K_M)",
+    "hfRepoId": "unsloth/gemma-4-26B-A4B-it-GGUF",
+    "hfFileName": "gemma-4-26B-A4B-it-UD-Q4_K_M.gguf",
+    "runtime": "llama.cpp"
+  },
+  {
+    "displayName": "Gemma 4 31B Instruct (Q4_K_M)",
+    "hfRepoId": "unsloth/gemma-4-31B-it-GGUF",
+    "hfFileName": "gemma-4-31B-it-Q4_K_M.gguf",
     "runtime": "llama.cpp"
   }
 ]
