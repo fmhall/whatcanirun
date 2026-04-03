@@ -15,7 +15,7 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
-import { enumToPgEnum } from '@/lib/utils';
+import enumToPgEnum from '@/lib/utils/enum-to-pg-enum';
 
 // -----------------------------------------------------------------------------
 // Enums
@@ -174,12 +174,36 @@ export const organizations = pgTable('organizations', {
   name: text('name').notNull(),
   logoUrl: text('logo_url'),
   websiteUrl: text('website_url'),
+  slug: text('slug').notNull().unique(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at')
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
 });
+
+export const modelFamilies = pgTable(
+  'model_families',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => `fam_${crypto.randomUUID()}`),
+    orgId: text('org_id')
+      .notNull()
+      .references(() => organizations.id),
+    slug: text('slug').notNull(),
+    name: text('name').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex('model_families_org_slug_idx').on(t.orgId, t.slug),
+    index('model_families_org_id_idx').on(t.orgId),
+  ],
+);
 
 export const modelsInfo = pgTable(
   'models_info',
@@ -189,6 +213,7 @@ export const modelsInfo = pgTable(
       .references(() => models.artifactSha256),
     labId: text('lab_id').references(() => organizations.id),
     quantizedById: text('quantized_by_id').references(() => organizations.id),
+    familyId: text('family_id').references(() => modelFamilies.id),
     // Overrides `models` column values
     name: text('name'),
     source: text('source'),
@@ -210,6 +235,7 @@ export const modelsInfo = pgTable(
   (t) => [
     index('models_info_lab_id_idx').on(t.labId),
     index('models_info_quantized_by_id_idx').on(t.quantizedById),
+    index('models_info_family_id_idx').on(t.familyId),
   ],
 );
 // -----------------------------------------------------------------------------
@@ -334,6 +360,8 @@ export const view__model_stats_by_device = pgMaterializedView('view__model_stats
         labName: sql<string | null>`MIN(${labOrg.name})`.as('lab_name'),
         labLogoUrl: sql<string | null>`MIN(${labOrg.logoUrl})`.as('lab_logo_url'),
         labWebsiteUrl: sql<string | null>`MIN(${labOrg.websiteUrl})`.as('lab_website_url'),
+        labSlug: sql<string | null>`MIN(${labOrg.slug})`.as('lab_slug'),
+        familySlug: sql<string | null>`MIN(${modelFamilies.slug})`.as('family_slug'),
         quantizedByName: sql<string | null>`MIN(${quantOrg.name})`.as('quantized_by_name'),
         quantizedByLogoUrl: sql<string | null>`MIN(${quantOrg.logoUrl})`.as(
           'quantized_by_logo_url',
@@ -441,6 +469,7 @@ export const view__model_stats_by_device = pgMaterializedView('view__model_stats
       .leftJoin(modelsInfo, eq(models.artifactSha256, modelsInfo.artifactSha256))
       .leftJoin(labOrg, eq(modelsInfo.labId, labOrg.id))
       .leftJoin(quantOrg, eq(modelsInfo.quantizedById, quantOrg.id))
+      .leftJoin(modelFamilies, eq(modelsInfo.familyId, modelFamilies.id))
       .where(
         and(
           eq(runs.status, RunStatus.VERIFIED),
@@ -449,6 +478,87 @@ export const view__model_stats_by_device = pgMaterializedView('view__model_stats
         ),
       )
       .groupBy(models.id, devices.chipId, runs.runtimeName),
+);
+
+export const view__model_device_summary = pgMaterializedView('view__model_device_summary').as(
+  (qb) =>
+    qb
+      .select({
+        modelId: sql<string>`${models.id}`.as('model_id'),
+        familyId: sql<string | null>`MIN(${modelsInfo.familyId})`.as('family_id'),
+        deviceChipId: devices.chipId,
+        deviceCpu: sql<string>`MIN(${devices.cpu})`.as('device_cpu'),
+        deviceCpuCores: sql<number>`MIN(${devices.cpuCores})`.as('device_cpu_cores'),
+        deviceGpu: sql<string>`MIN(${devices.gpu})`.as('device_gpu'),
+        deviceGpuCores: sql<number>`MIN(${devices.gpuCores})`.as('device_gpu_cores'),
+        deviceRamGb: sql<number>`MIN(${devices.ramGb})`.as('device_ram_gb'),
+        avgDecodeTps: sql<number>`AVG(${trials.decodeTps})`.as('avg_decode_tps'),
+        avgPrefillTps: sql<number>`AVG(${trials.prefillTps})`.as('avg_prefill_tps'),
+        compositeScore: sql<number>`(
+          CASE
+          WHEN AVG(
+            CASE WHEN NOT (${runs.runtimeName} = 'llama.cpp' AND ${runs.harnessVersion} <= '0.1.16')
+              AND NOT (LOWER(${devices.osName}) != 'macos' AND ${runs.harnessVersion} < '0.1.19')
+              THEN ${trials.peakRssMb}
+            END
+          ) IS NOT NULL THEN
+            0.45 * (CASE
+              WHEN AVG(${trials.decodeTps}) >= 100 THEN 1.0
+              WHEN AVG(${trials.decodeTps}) >= 40  THEN 0.8 + 0.2 * (AVG(${trials.decodeTps}) - 40) / 60.0
+              WHEN AVG(${trials.decodeTps}) >= 20  THEN 0.6 + 0.2 * (AVG(${trials.decodeTps}) - 20) / 20.0
+              WHEN AVG(${trials.decodeTps}) >= 10  THEN 0.4 + 0.2 * (AVG(${trials.decodeTps}) - 10) / 10.0
+              WHEN AVG(${trials.decodeTps}) >= 5   THEN 0.2 + 0.2 * (AVG(${trials.decodeTps}) - 5) / 5.0
+              ELSE 0.2 * AVG(${trials.decodeTps}) / 5.0
+            END)
+            + 0.25 * (CASE
+              WHEN AVG(${trials.prefillTps}) >= 4000 THEN 1.0
+              WHEN AVG(${trials.prefillTps}) >= 2000 THEN 0.8 + 0.2 * (AVG(${trials.prefillTps}) - 2000) / 2000.0
+              WHEN AVG(${trials.prefillTps}) >= 1000 THEN 0.6 + 0.2 * (AVG(${trials.prefillTps}) - 1000) / 1000.0
+              WHEN AVG(${trials.prefillTps}) >= 500  THEN 0.4 + 0.2 * (AVG(${trials.prefillTps}) - 500) / 500.0
+              WHEN AVG(${trials.prefillTps}) >= 200  THEN 0.2 + 0.2 * (AVG(${trials.prefillTps}) - 200) / 300.0
+              ELSE 0.2 * AVG(${trials.prefillTps}) / 200.0
+            END)
+            + 0.30 * GREATEST(0, 1.0 - COALESCE(
+                AVG(CASE WHEN NOT (${runs.runtimeName} = 'llama.cpp' AND ${runs.harnessVersion} <= '0.1.16')
+                  AND NOT (LOWER(${devices.osName}) != 'macos' AND ${runs.harnessVersion} < '0.1.19')
+                  THEN ${trials.peakRssMb}
+                END),
+                COALESCE(NULLIF(MIN(${modelsInfo.fileSizeBytes}), 0), ${models.fileSizeBytes})
+                  / (1024.0 * 1024.0) + 512.0
+              ) / (MIN(${devices.ramGb}) * 716.8))
+          ELSE
+            0.65 * (CASE
+              WHEN AVG(${trials.decodeTps}) >= 100 THEN 1.0
+              WHEN AVG(${trials.decodeTps}) >= 40  THEN 0.8 + 0.2 * (AVG(${trials.decodeTps}) - 40) / 60.0
+              WHEN AVG(${trials.decodeTps}) >= 20  THEN 0.6 + 0.2 * (AVG(${trials.decodeTps}) - 20) / 20.0
+              WHEN AVG(${trials.decodeTps}) >= 10  THEN 0.4 + 0.2 * (AVG(${trials.decodeTps}) - 10) / 10.0
+              WHEN AVG(${trials.decodeTps}) >= 5   THEN 0.2 + 0.2 * (AVG(${trials.decodeTps}) - 5) / 5.0
+              ELSE 0.2 * AVG(${trials.decodeTps}) / 5.0
+            END)
+            + 0.35 * (CASE
+              WHEN AVG(${trials.prefillTps}) >= 4000 THEN 1.0
+              WHEN AVG(${trials.prefillTps}) >= 2000 THEN 0.8 + 0.2 * (AVG(${trials.prefillTps}) - 2000) / 2000.0
+              WHEN AVG(${trials.prefillTps}) >= 1000 THEN 0.6 + 0.2 * (AVG(${trials.prefillTps}) - 1000) / 1000.0
+              WHEN AVG(${trials.prefillTps}) >= 500  THEN 0.4 + 0.2 * (AVG(${trials.prefillTps}) - 500) / 500.0
+              WHEN AVG(${trials.prefillTps}) >= 200  THEN 0.2 + 0.2 * (AVG(${trials.prefillTps}) - 200) / 300.0
+              ELSE 0.2 * AVG(${trials.prefillTps}) / 200.0
+            END)
+          END
+        )`.as('composite_score'),
+      })
+      .from(trials)
+      .innerJoin(runs, eq(trials.runId, runs.id))
+      .innerJoin(models, eq(runs.modelId, models.id))
+      .innerJoin(devices, eq(runs.deviceId, devices.id))
+      .leftJoin(modelsInfo, eq(models.artifactSha256, modelsInfo.artifactSha256))
+      .where(
+        and(
+          eq(runs.status, RunStatus.VERIFIED),
+          eq(trials.inputTokens, 4096),
+          eq(trials.outputTokens, 1024),
+        ),
+      )
+      .groupBy(models.id, devices.chipId),
 );
 
 // -----------------------------------------------------------------------------
@@ -462,6 +572,7 @@ export const devicesRelations = relations(devices, ({ many }) => ({
 export const organizationsRelations = relations(organizations, ({ many }) => ({
   models: many(modelsInfo, { relationName: 'lab' }),
   quantizedModels: many(modelsInfo, { relationName: 'quantizedBy' }),
+  families: many(modelFamilies),
 }));
 
 export const modelsRelations = relations(models, ({ one, many }) => ({
@@ -470,6 +581,11 @@ export const modelsRelations = relations(models, ({ one, many }) => ({
     fields: [models.artifactSha256],
     references: [modelsInfo.artifactSha256],
   }),
+}));
+
+export const modelFamiliesRelations = relations(modelFamilies, ({ one, many }) => ({
+  org: one(organizations, { fields: [modelFamilies.orgId], references: [organizations.id] }),
+  models: many(modelsInfo),
 }));
 
 export const modelsInfoRelations = relations(modelsInfo, ({ one }) => ({
@@ -484,6 +600,7 @@ export const modelsInfoRelations = relations(modelsInfo, ({ one }) => ({
     references: [organizations.id],
     relationName: 'quantizedBy',
   }),
+  family: one(modelFamilies, { fields: [modelsInfo.familyId], references: [modelFamilies.id] }),
 }));
 
 export const runsRelations = relations(runs, ({ one, many }) => ({
@@ -507,6 +624,10 @@ export type ApiToken = typeof apiTokens.$inferSelect;
 export type Organization = typeof organizations.$inferSelect;
 export type Device = typeof devices.$inferSelect;
 export type Model = typeof models.$inferSelect;
+export type ModelFamily = typeof modelFamilies.$inferSelect;
 export type ModelInfo = typeof modelsInfo.$inferSelect;
 export type Run = typeof runs.$inferSelect;
 export type Trial = typeof trials.$inferSelect;
+// Views
+export type ModelStatsByDevice = typeof view__model_stats_by_device.$inferSelect;
+export type ModelDeviceSummary = typeof view__model_device_summary.$inferSelect;
