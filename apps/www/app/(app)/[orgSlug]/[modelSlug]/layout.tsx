@@ -61,7 +61,7 @@ export default async function Layout({
                 <span>{family.orgName}</span>
               </Link>
               <span>/</span>
-              <span className="tracking-tight text-gray-12">{family.familyName}</span>
+              <span className="line-clamp-1 tracking-tight text-gray-12">{family.familyName}</span>
             </h1>
             {/* <div className="flex flex-wrap gap-x-3 gap-y-1.5">{family.orgWebsiteUrl}</div> */}
           </div>

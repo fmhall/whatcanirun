@@ -126,12 +126,13 @@ export async function GET(request: NextRequest) {
               ) : null}
               <div
                 style={{
-                  display: 'flex',
+                  display: 'block',
                   fontSize: 64,
                   fontWeight: 600,
                   lineHeight: 1.2,
                   letterSpacing: '-0.025em',
                   color: GRAY_12,
+                  lineClamp: 1,
                 }}
               >
                 {title}
@@ -139,12 +140,13 @@ export async function GET(request: NextRequest) {
             </div>
             <div
               style={{
-                display: 'flex',
+                display: 'block',
                 marginTop: 32,
                 fontSize: 40,
                 fontWeight: 400,
                 lineHeight: 1.5,
                 color: GRAY_11,
+                lineClamp: 3,
               }}
             >
               {description}
