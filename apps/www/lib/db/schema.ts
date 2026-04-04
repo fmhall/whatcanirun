@@ -193,6 +193,13 @@ export const modelFamilies = pgTable(
       .references(() => organizations.id),
     slug: text('slug').notNull(),
     name: text('name').notNull(),
+    parameters: text('parameters'),
+    quant: text('quant'),
+    architecture: text('architecture'),
+    variant: text('variant'),
+    license: text('license'),
+    releaseDate: timestamp('release_date'),
+    tags: jsonb('tags'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at')
       .notNull()
@@ -221,11 +228,6 @@ export const modelsInfo = pgTable(
     parameters: text('parameters'),
     quant: text('quant'),
     architecture: text('architecture'),
-    // Additional metadata
-    variant: text('variant'),
-    license: text('license'),
-    releaseDate: timestamp('release_date'),
-    tags: jsonb('tags'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at')
       .notNull()

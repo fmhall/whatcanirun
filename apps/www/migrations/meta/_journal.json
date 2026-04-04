@@ -281,6 +281,13 @@
       "when": 1775210394915,
       "tag": "0039_first_imperial_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1775292512746,
+      "tag": "0040_broad_jasper_sitwell",
+      "breakpoints": true
     }
   ]
 }
