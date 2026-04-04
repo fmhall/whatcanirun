@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Fragment } from 'react';
 
 import clsx from 'clsx';
-import { ArrowUpRight, Cpu, HardDrive, Layers } from 'lucide-react';
+import { ArrowUpRight, HardDrive, Layers } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 
 import type { Model, Organization, Run } from '@/lib/db/schema';
@@ -15,12 +15,9 @@ import UserAvatar from '@/components/templates/user-avatar';
 // Props
 // -----------------------------------------------------------------------------
 
-type ModelTableCellProps = Pick<
-  Model,
-  'displayName' | 'quant' | 'architecture' | 'source' | 'fileSizeBytes'
-> &
+type ModelTableCellProps = Pick<Model, 'displayName' | 'quant' | 'source' | 'fileSizeBytes'> &
   Pick<Run, 'runtimeName'> & {
-    lab?: Pick<Organization, 'name' | 'logoUrl' | 'websiteUrl'>;
+    lab?: Pick<Organization, 'name' | 'logoUrl' | 'websiteUrl' | 'slug'>;
     quantizedBy?: Pick<Organization, 'name' | 'logoUrl' | 'websiteUrl'>;
     labSlug?: string | null;
     familySlug?: string | null;
@@ -32,7 +29,6 @@ type ModelTableCellProps = Pick<
 const ModelTableCell: React.FC<ModelTableCellProps> & { Skeleton: React.FC } = ({
   displayName,
   quant,
-  architecture,
   source,
   runtimeName,
   fileSizeBytes,
@@ -79,19 +75,14 @@ const ModelTableCell: React.FC<ModelTableCellProps> & { Skeleton: React.FC } = (
             content={
               <span className="whitespace-nowrap text-gray-11">
                 Base model by{' '}
-                {lab.websiteUrl ? (
-                  <a
+                {lab.slug ? (
+                  <Link
                     className="inline-flex items-center gap-1 align-[-2px] text-gray-11 underline decoration-dotted transition-colors hover:text-gray-12"
-                    href={lab.websiteUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href={`/${lab.slug}`}
                   >
                     <UserAvatar image={lab.logoUrl} name={lab.name} size={16} />
-                    <span className="flex">
-                      {lab.name}
-                      <ArrowUpRight className="size-3 text-gray-11" />
-                    </span>
-                  </a>
+                    {lab.name}
+                  </Link>
                 ) : (
                   <span className="inline-flex items-center gap-1 align-[-2px] text-gray-11">
                     <UserAvatar image={lab.logoUrl} name={lab.name} size={16} />
@@ -136,19 +127,14 @@ const ModelTableCell: React.FC<ModelTableCellProps> & { Skeleton: React.FC } = (
             content={
               <span className="text-gray-11">
                 Base model by{' '}
-                {lab.websiteUrl ? (
-                  <a
+                {lab.slug ? (
+                  <Link
                     className="inline-flex items-center gap-1 align-[-2px] text-gray-11 underline decoration-dotted transition-colors hover:text-gray-12"
-                    href={lab.websiteUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href={`/${lab.slug}`}
                   >
                     <UserAvatar image={lab.logoUrl} name={lab.name} size={16} />
-                    <span className="flex">
-                      {lab.name}
-                      <ArrowUpRight className="size-3 text-gray-11" />
-                    </span>
-                  </a>
+                    {lab.name}
+                  </Link>
                 ) : (
                   <span className="inline-flex items-center gap-1 align-[-2px] text-gray-11">
                     <UserAvatar image={lab.logoUrl} name={lab.name} size={16} />
@@ -180,12 +166,6 @@ const ModelTableCell: React.FC<ModelTableCellProps> & { Skeleton: React.FC } = (
             value: fileSizeBytes ? formatBytes(fileSizeBytes) : null,
             content: 'File size',
           },
-
-          {
-            icon: <Cpu />,
-            value: architecture,
-            content: 'Architecture',
-          },
         ].map(({ icon, value, content }, index) => {
           if (!value) return null;
 
@@ -212,6 +192,17 @@ const ModelTableCell: React.FC<ModelTableCellProps> & { Skeleton: React.FC } = (
 
           return <Fragment key={index}>{Children}</Fragment>;
         })}
+        {source && url ? (
+          <a
+            className="flex w-fit whitespace-nowrap text-xs leading-4 text-gray-11 underline decoration-dotted transition-colors hover:text-gray-12"
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Source
+            <ArrowUpRight className="size-2.5" />
+          </a>
+        ) : null}
       </div>
     </div>
   );
@@ -228,7 +219,6 @@ const ModelTableCellSkeleton: React.FC = () => {
         {[
           { icon: <Layers />, className: 'w-7' },
           { icon: <HardDrive />, className: 'w-6' },
-          { icon: <Cpu />, className: 'w-12' },
         ].map(({ icon, className }, index) => {
           return (
             <div className="flex w-fit items-center gap-1 text-gray-11" key={index}>
@@ -239,6 +229,10 @@ const ModelTableCellSkeleton: React.FC = () => {
             </div>
           );
         })}
+        <div className="flex w-fit text-gray-11">
+          Source
+          <ArrowUpRight className="size-2.5" />
+        </div>
       </div>
     </div>
   );
