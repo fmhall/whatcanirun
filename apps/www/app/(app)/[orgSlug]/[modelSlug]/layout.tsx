@@ -8,9 +8,9 @@ import TabsNav from './tabs';
 import { getModelFamily } from './utils';
 import { Calendar, Scale, Waypoints } from 'lucide-react';
 
+import ClickableTooltip from '@/components/templates/clickable-tooltip';
 import RelativeDate from '@/components/templates/relative-date';
 import UserAvatar from '@/components/templates/user-avatar';
-import { Tooltip } from '@/components/ui';
 
 // -----------------------------------------------------------------------------
 // Metadata
@@ -87,14 +87,14 @@ export default async function Layout({
               ].map(({ icon, text, label }, i) =>
                 text ? (
                   label ? (
-                    <Tooltip key={i} content={label} inverted={false}>
+                    <ClickableTooltip key={i} content={label}>
                       <div className="flex min-w-fit items-center gap-1 text-nowrap text-gray-11 underline decoration-dotted transition-colors hover:text-gray-12 md:gap-1.5">
                         <span className="flex size-3.5 items-center justify-center text-gray-11 md:size-4">
                           {icon}
                         </span>
                         <span className="text-sm md:text-base">{text}</span>
                       </div>
-                    </Tooltip>
+                    </ClickableTooltip>
                   ) : (
                     <div
                       key={i}
