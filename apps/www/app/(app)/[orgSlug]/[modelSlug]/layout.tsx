@@ -6,8 +6,11 @@ import { Fragment } from 'react';
 import { generateBaseMetadata } from './generate-base-metadata';
 import TabsNav from './tabs';
 import { getModelFamily } from './utils';
+import { Calendar, Scale, Waypoints } from 'lucide-react';
 
+import RelativeDate from '@/components/templates/relative-date';
 import UserAvatar from '@/components/templates/user-avatar';
+import { Tooltip } from '@/components/ui';
 
 // -----------------------------------------------------------------------------
 // Metadata
@@ -42,7 +45,7 @@ export default async function Layout({
     <div className="flex grow flex-col">
       <header className="w-full border-b border-gray-6 bg-black px-4 py-4 md:px-6 md:py-8">
         <div className="mx-auto flex w-full max-w-5xl items-center">
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1 md:gap-2">
             <h1 className="flex items-center gap-1.5 text-2xl font-medium text-gray-11 md:text-3xl">
               <Link
                 href={`/${family.orgSlug}`}
@@ -63,7 +66,49 @@ export default async function Layout({
               <span>/</span>
               <span className="line-clamp-1 tracking-tight text-gray-12">{family.familyName}</span>
             </h1>
-            {/* <div className="flex flex-wrap gap-x-3 gap-y-1.5">{family.orgWebsiteUrl}</div> */}
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 pl-8 md:gap-x-3 md:pl-[2.375rem]">
+              {[
+                {
+                  icon: <Waypoints />,
+                  text: family.parameters,
+                  label: 'Parameters',
+                },
+                {
+                  icon: <Calendar />,
+                  text: family.releaseDate ? (
+                    <RelativeDate date={new Date(family.releaseDate)} type="absolute" />
+                  ) : null,
+                },
+                {
+                  icon: <Scale />,
+                  text: family.license,
+                  label: 'License',
+                },
+              ].map(({ icon, text, label }, i) =>
+                text ? (
+                  label ? (
+                    <Tooltip key={i} content={label} inverted={false}>
+                      <div className="flex min-w-fit items-center gap-1 text-nowrap text-gray-11 underline decoration-dotted transition-colors hover:text-gray-12 md:gap-1.5">
+                        <span className="flex size-3.5 items-center justify-center text-gray-11 md:size-4">
+                          {icon}
+                        </span>
+                        <span className="text-sm md:text-base">{text}</span>
+                      </div>
+                    </Tooltip>
+                  ) : (
+                    <div
+                      key={i}
+                      className="flex min-w-fit items-center gap-1 text-nowrap text-gray-11 md:gap-1.5"
+                    >
+                      <span className="flex size-3.5 items-center justify-center md:size-4">
+                        {icon}
+                      </span>
+                      <span className="text-sm md:text-base">{text}</span>
+                    </div>
+                  )
+                ) : null,
+              )}
+            </div>
           </div>
         </div>
       </header>
