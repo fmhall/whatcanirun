@@ -66,7 +66,7 @@ export default async function Layout({
               <span>/</span>
               <span className="line-clamp-1 tracking-tight text-gray-12">{family.familyName}</span>
             </h1>
-            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 pl-8 md:gap-x-3 md:pl-[2.375rem]">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 pl-0 md:gap-x-3 md:pl-[2.375rem]">
               {[
                 {
                   icon: <Waypoints />,
