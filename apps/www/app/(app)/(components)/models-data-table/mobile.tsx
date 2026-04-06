@@ -10,6 +10,8 @@ import clsx from 'clsx';
 import { Check, ChevronRight, Copy, FileText, Info } from 'lucide-react';
 
 import { RUN_COMMAND } from '@/lib/constants/cli';
+import { getVramGb, MANUFACTURER_LABEL } from '@/lib/constants/gpu';
+import { parseManufacturer } from '@/lib/utils';
 
 import ClickableTooltip from '@/components/templates/clickable-tooltip';
 import DataTableSortHeader from '@/components/templates/data-table-sort-header';
@@ -258,24 +260,65 @@ const ModelsDataTableMobile: React.FC<ModelsDataTableInternalProps> = (tableOpti
 };
 
 const ModelsDataTableMobileSubComponent: React.FC<{ data: ModelsDataTableValue }> = ({ data }) => {
+  const hasGpu = data.deviceGpuCores > 0;
+  const devicePrimaryName = hasGpu ? data.deviceGpu : data.deviceCpu;
+  const { manufacturer, displayName, logo: Icon } = parseManufacturer(devicePrimaryName);
+  const vram = getVramGb(data.deviceGpu);
+
   return (
     <div className="grid grid-cols-2 gap-2 p-1">
       <Stat className="col-span-2">
         <Stat.Name>Device</Stat.Name>
-        <Stat.Value>{data.deviceCpu ?? data.deviceGpu}</Stat.Value>
-      </Stat>
-      <Stat className="col-span-1">
-        <Stat.Name>CPU/GPU cores</Stat.Name>
-        <Stat.Value className="tabular-nums">
-          {data.deviceCpuCores}
-          <span className="text-gray-11"> / </span>
-          {data.deviceGpuCores}
+        <Stat.Value className="flex items-center gap-1.5">
+          {displayName}{' '}
+          {manufacturer && Icon ? (
+            <ClickableTooltip
+              content={MANUFACTURER_LABEL[manufacturer]}
+              triggerProps={{ className: 'rounded' }}
+            >
+              <span className="flex size-4 shrink-0 items-center justify-center rounded">
+                <Icon className="border-gray-7 transition-colors hover:border-gray-8" size={16} />
+              </span>
+            </ClickableTooltip>
+          ) : null}
         </Stat.Value>
       </Stat>
-      <Stat className="col-span-1">
-        <Stat.Name>RAM</Stat.Name>
-        <Stat.Value className="tabular-nums">{data.deviceRamGb} GB</Stat.Value>
-      </Stat>
+      {manufacturer === 'apple' ? (
+        <Fragment>
+          <Stat className="col-span-1">
+            <Stat.Name>CPU/GPU cores</Stat.Name>
+            <Stat.Value className="tabular-nums">
+              {data.deviceCpuCores}
+              <span className="text-gray-11"> / </span>
+              {data.deviceGpuCores}
+            </Stat.Value>
+          </Stat>
+          <Stat className="col-span-1">
+            <Stat.Name>RAM</Stat.Name>
+            <Stat.Value className="tabular-nums">{data.deviceRamGb} GB</Stat.Value>
+          </Stat>
+        </Fragment>
+      ) : hasGpu ? (
+        <Stat className="col-span-2">
+          <Stat.Name>VRAM</Stat.Name>
+          {vram ? (
+            <Stat.Value className="tabular-nums">{vram} GB</Stat.Value>
+          ) : (
+            <Stat.Value empty>Unknown</Stat.Value>
+          )}
+        </Stat>
+      ) : (
+        <Fragment>
+          <Stat className="col-span-1">
+            <Stat.Name>CPU cores</Stat.Name>
+            <Stat.Value className="tabular-nums">{data.deviceCpuCores}</Stat.Value>
+          </Stat>
+          <Stat className="col-span-1">
+            <Stat.Name>RAM</Stat.Name>
+            <Stat.Value className="tabular-nums">{data.deviceRamGb} GB</Stat.Value>
+          </Stat>
+        </Fragment>
+      )}
       <Stat className="col-span-1">
         <Stat.Name>Runtime</Stat.Name>
         <RuntimeTableCell

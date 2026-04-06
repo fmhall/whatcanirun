@@ -164,3 +164,14 @@ export function getGpuSeriesRank(gpu: string): number {
   }
   return 0;
 }
+
+// -----------------------------------------------------------------------------
+// Manufacturer labels
+// -----------------------------------------------------------------------------
+
+export const MANUFACTURER_LABEL: Record<string, string> = {
+  nvidia: 'NVIDIA',
+  amd: 'AMD',
+  intel: 'Intel',
+  apple: 'Apple',
+};

@@ -4,23 +4,12 @@ import clsx from 'clsx';
 import { Cpu, Gpu, MemoryStick } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 
-import { getVramGb } from '@/lib/constants/gpu';
+import { getVramGb, MANUFACTURER_LABEL } from '@/lib/constants/gpu';
 import type { Device } from '@/lib/db/schema';
 import { parseManufacturer } from '@/lib/utils';
 
 import ClickableTooltip from '@/components/templates/clickable-tooltip';
 import { Badge } from '@/components/ui';
-
-// -----------------------------------------------------------------------------
-// Constants
-// -----------------------------------------------------------------------------
-
-const MANUFACTURER_LABEL: Record<string, string> = {
-  nvidia: 'NVIDIA',
-  amd: 'AMD',
-  intel: 'Intel',
-  apple: 'Apple',
-};
 
 // -----------------------------------------------------------------------------
 // Props

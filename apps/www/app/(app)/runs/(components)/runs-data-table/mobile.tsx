@@ -8,8 +8,11 @@ import { type ColumnDef, flexRender, useReactTable } from '@tanstack/react-table
 import clsx from 'clsx';
 import { ChevronRight, FileText } from 'lucide-react';
 
+import { getVramGb, MANUFACTURER_LABEL } from '@/lib/constants/gpu';
 import { RunStatus } from '@/lib/db/schema';
+import { parseManufacturer } from '@/lib/utils';
 
+import ClickableTooltip from '@/components/templates/clickable-tooltip';
 import DataTableSortHeader from '@/components/templates/data-table-sort-header';
 import RelativeDate from '@/components/templates/relative-date';
 import Stat from '@/components/templates/stat';
@@ -230,25 +233,65 @@ const RunsDataTableMobile: React.FC<RunsDataTableInternalProps> = (tableOptions)
 
 const RunsDataTableMobileSubComponent: React.FC<{ data: RunsDataTableValue }> = ({ data }) => {
   const { device } = data;
+  const hasGpu = device.gpuCores > 0;
+  const devicePrimaryName = hasGpu ? device.gpu : device.cpu;
+  const { manufacturer, displayName, logo: Icon } = parseManufacturer(devicePrimaryName);
+  const vram = getVramGb(device.gpu);
 
   return (
     <div className="grid grid-cols-2 gap-2 p-1">
       <Stat className="col-span-2">
         <Stat.Name>Device</Stat.Name>
-        <Stat.Value>{device.cpu ?? device.gpu}</Stat.Value>
-      </Stat>
-      <Stat className="col-span-1">
-        <Stat.Name>CPU/GPU cores</Stat.Name>
-        <Stat.Value className="tabular-nums">
-          {device.cpuCores}
-          <span className="text-gray-11"> / </span>
-          {device.gpuCores}
+        <Stat.Value className="flex items-center gap-1.5">
+          {displayName}{' '}
+          {manufacturer && Icon ? (
+            <ClickableTooltip
+              content={MANUFACTURER_LABEL[manufacturer]}
+              triggerProps={{ className: 'rounded' }}
+            >
+              <span className="flex size-4 shrink-0 items-center justify-center rounded">
+                <Icon className="border-gray-7 transition-colors hover:border-gray-8" size={16} />
+              </span>
+            </ClickableTooltip>
+          ) : null}
         </Stat.Value>
       </Stat>
-      <Stat className="col-span-1">
-        <Stat.Name>RAM</Stat.Name>
-        <Stat.Value className="tabular-nums">{device.ramGb} GB</Stat.Value>
-      </Stat>
+      {manufacturer === 'apple' ? (
+        <Fragment>
+          <Stat className="col-span-1">
+            <Stat.Name>CPU/GPU cores</Stat.Name>
+            <Stat.Value className="tabular-nums">
+              {device.cpuCores}
+              <span className="text-gray-11"> / </span>
+              {device.gpuCores}
+            </Stat.Value>
+          </Stat>
+          <Stat className="col-span-1">
+            <Stat.Name>RAM</Stat.Name>
+            <Stat.Value className="tabular-nums">{device.ramGb} GB</Stat.Value>
+          </Stat>
+        </Fragment>
+      ) : hasGpu ? (
+        <Stat className="col-span-2">
+          <Stat.Name>VRAM</Stat.Name>
+          {vram ? (
+            <Stat.Value className="tabular-nums">{vram} GB</Stat.Value>
+          ) : (
+            <Stat.Value empty>Unknown</Stat.Value>
+          )}
+        </Stat>
+      ) : (
+        <Fragment>
+          <Stat className="col-span-1">
+            <Stat.Name>CPU cores</Stat.Name>
+            <Stat.Value className="tabular-nums">{device.cpuCores}</Stat.Value>
+          </Stat>
+          <Stat className="col-span-1">
+            <Stat.Name>RAM</Stat.Name>
+            <Stat.Value className="tabular-nums">{device.ramGb} GB</Stat.Value>
+          </Stat>
+        </Fragment>
+      )}
       <Stat className="col-span-1">
         <Stat.Name>Runtime</Stat.Name>
         <RuntimeTableCell
