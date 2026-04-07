@@ -63,7 +63,7 @@ const DeviceCombobox: React.FC<DeviceComboboxProps> = ({ devices, value, onSelec
   // Group by manufacturer.
   const groups = useMemo(() => {
     const byManufacturer = new Map<string, (DeviceOption & { key: string })[]>();
-    const filteredDevices = devices.filter((d) => d.gpuCores > 0);
+    const filteredDevices = devices.filter((d) => d.gpuCount > 0);
     for (const d of filteredDevices) {
       const key = d.chipId;
       const primaryName = d.gpu;

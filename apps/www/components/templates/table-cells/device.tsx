@@ -36,7 +36,7 @@ const DeviceTableCell: React.FC<DeviceTableCellProps> & { Skeleton: React.FC } =
   const isMac = osName?.toLowerCase() === 'macos';
 
   if (!isMac) {
-    const hasGpu = gpuCores > 0;
+    const hasGpu = gpuCount > 0;
     const primaryName = hasGpu ? gpu : cpu;
     const { manufacturer, displayName, logo: Icon } = parseManufacturer(primaryName);
 

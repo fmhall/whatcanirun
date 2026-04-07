@@ -578,15 +578,11 @@ const FORMAT_LOGO: Record<string, React.FC<{ className?: string; size?: number }
   mlx: LogoImg.Mlx,
 };
 
-function hasDiscreteGpu(datum: ModelDevicesChartValue) {
-  return datum.deviceGpuCores > 0 || (datum.deviceGpuCount ?? 1) > 1;
-}
-
 function getManufacturerLogo(datum: ModelDevicesChartValue) {
   const isApple = datum.deviceGpu.toLowerCase().startsWith('apple');
   const primaryName = isApple
     ? datum.deviceGpu
-    : hasDiscreteGpu(datum)
+    : datum.deviceGpuCount > 0
       ? datum.deviceGpu
       : datum.deviceCpu;
   return parseManufacturer(primaryName);
@@ -598,7 +594,7 @@ function getDeviceDisplayName(datum: ModelDevicesChartValue) {
   const countPrefix = !isApple && gpuCount > 1 ? `${gpuCount}×` : '';
   return isApple
     ? formatChipName(datum.deviceCpu)
-    : hasDiscreteGpu(datum)
+    : datum.deviceGpuCount > 0
       ? countPrefix + formatChipName(datum.deviceGpu)
       : formatChipName(datum.deviceCpu);
 }

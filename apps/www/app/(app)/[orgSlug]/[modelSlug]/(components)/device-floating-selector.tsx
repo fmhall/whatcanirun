@@ -58,7 +58,7 @@ const DeviceFloatingSelector: React.FC<DeviceFloatingSelectorProps> = ({ chips }
   );
 
   const isApple = selected ? selected.gpu.toLowerCase().startsWith('apple') : true;
-  const hasGpu = selected ? selected.gpuCores > 0 : false;
+  const hasGpu = selected ? selected.gpuCount > 0 : false;
 
   const gpuCount = selected?.gpuCount ?? 1;
   const countPrefix = !isApple && gpuCount > 1 ? `${gpuCount}×` : '';

@@ -138,7 +138,7 @@ const HeroHeading: React.FC<{ chips: ChipOption[] }> = ({ chips }) => {
   );
 
   const isApple = selected ? selected.gpu.toLowerCase().startsWith('apple') : true;
-  const hasGpu = selected ? selected.gpuCores > 0 : false;
+  const hasGpu = selected ? selected.gpuCount > 0 : false;
 
   // Apple: strip manufacturer from CPU name, show RAM.
   // Non-Apple GPU: strip manufacturer from GPU name.

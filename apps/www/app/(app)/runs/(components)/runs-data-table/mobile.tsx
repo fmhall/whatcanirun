@@ -233,7 +233,7 @@ const RunsDataTableMobile: React.FC<RunsDataTableInternalProps> = (tableOptions)
 
 const RunsDataTableMobileSubComponent: React.FC<{ data: RunsDataTableValue }> = ({ data }) => {
   const { device } = data;
-  const hasGpu = device.gpuCores > 0;
+  const hasGpu = device.gpuCount > 0;
   const gpuCount = device.gpuCount ?? 1;
   const devicePrimaryName = hasGpu ? device.gpu : device.cpu;
   const { manufacturer, displayName, logo: Icon } = parseManufacturer(devicePrimaryName);
