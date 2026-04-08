@@ -1,6 +1,6 @@
 {
-  "id": "bf97c36f-4382-464c-9103-c9620f1469e8",
-  "prevId": "25f2197d-9522-47d4-a2d5-25e76f0c4f44",
+  "id": "409479ae-9af3-4938-85be-1882f2877d10",
+  "prevId": "175a095f-87b5-4664-aa85-c8a0f9817d2f",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -666,153 +666,6 @@
       },
       "indexes": {},
       "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.rewards": {
-      "name": "rewards",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "did": {
-          "name": "did",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "run_id": {
-          "name": "run_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "model_id": {
-          "name": "model_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "device_chip_id": {
-          "name": "device_chip_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "model_reward": {
-          "name": "model_reward",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "device_reward": {
-          "name": "device_reward",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "total_reward": {
-          "name": "total_reward",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "payment_ref": {
-          "name": "payment_ref",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "rewards_did_idx": {
-          "name": "rewards_did_idx",
-          "columns": [
-            {
-              "expression": "did",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "rewards_model_idx": {
-          "name": "rewards_model_idx",
-          "columns": [
-            {
-              "expression": "model_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "rewards_device_chip_idx": {
-          "name": "rewards_device_chip_idx",
-          "columns": [
-            {
-              "expression": "device_chip_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "rewards_run_id_runs_id_fk": {
-          "name": "rewards_run_id_runs_id_fk",
-          "tableFrom": "rewards",
-          "tableTo": "runs",
-          "columnsFrom": [
-            "run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "rewards_model_id_models_id_fk": {
-          "name": "rewards_model_id_models_id_fk",
-          "tableFrom": "rewards",
-          "tableTo": "models",
-          "columnsFrom": [
-            "model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -1520,7 +1373,7 @@
           "notNull": true
         }
       },
-      "definition": "select \"models\".\"id\" as \"model_id\", COALESCE(NULLIF(MIN(\"models_info\".\"name\"), ''), \"models\".\"display_name\") as \"model_display_name\", \"models\".\"format\", COALESCE(NULLIF(MIN(\"models_info\".\"file_size_bytes\"), 0), \"models\".\"file_size_bytes\") as \"model_file_size_bytes\", COALESCE(NULLIF(MIN(\"models_info\".\"parameters\"), ''), \"models\".\"parameters\") as \"model_parameters\", COALESCE(NULLIF(MIN(\"models_info\".\"quant\"), ''), \"models\".\"quant\") as \"model_quant\", COALESCE(NULLIF(MIN(\"models_info\".\"architecture\"), ''), \"models\".\"architecture\") as \"model_architecture\", COALESCE(NULLIF(MIN(\"models_info\".\"source\"), ''), \"models\".\"source\") as \"model_source\", MIN(\"lab_org\".\"name\") as \"lab_name\", MIN(\"lab_org\".\"logo_url\") as \"lab_logo_url\", MIN(\"lab_org\".\"website_url\") as \"lab_website_url\", MIN(\"quant_org\".\"name\") as \"quantized_by_name\", MIN(\"quant_org\".\"logo_url\") as \"quantized_by_logo_url\", MIN(\"quant_org\".\"website_url\") as \"quantized_by_website_url\", \"devices\".\"chip_id\", MIN(\"devices\".\"cpu\") as \"device_cpu\", MIN(\"devices\".\"cpu_cores\") as \"device_cpu_cores\", MIN(\"devices\".\"gpu\") as \"device_gpu\", MIN(\"devices\".\"gpu_cores\") as \"device_gpu_cores\", MIN(\"devices\".\"ram_gb\") as \"device_ram_gb\", \"runs\".\"runtime_name\", count(distinct \"runs\".\"id\") as \"run_count\", count(\"trials\".\"id\") as \"trial_count\", PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY \"trials\".\"ttft_ms\") as \"ttft_p50_ms\", PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY \"trials\".\"ttft_ms\") as \"ttft_p95_ms\", AVG(\"trials\".\"decode_tps\") as \"avg_decode_tps\", AVG(\"trials\".\"prefill_tps\") as \"avg_prefill_tps\", AVG(\"trials\".\"idle_rss_mb\") as \"avg_idle_rss_mb\", AVG(\"trials\".\"peak_rss_mb\") as \"avg_peak_rss_mb\", (\n          0.45 * (CASE\n            WHEN AVG(\"trials\".\"decode_tps\") >= 100 THEN 1.0\n            WHEN AVG(\"trials\".\"decode_tps\") >= 40  THEN 0.8 + 0.2 * (AVG(\"trials\".\"decode_tps\") - 40) / 60.0\n            WHEN AVG(\"trials\".\"decode_tps\") >= 20  THEN 0.6 + 0.2 * (AVG(\"trials\".\"decode_tps\") - 20) / 20.0\n            WHEN AVG(\"trials\".\"decode_tps\") >= 10  THEN 0.4 + 0.2 * (AVG(\"trials\".\"decode_tps\") - 10) / 10.0\n            WHEN AVG(\"trials\".\"decode_tps\") >= 5   THEN 0.2 + 0.2 * (AVG(\"trials\".\"decode_tps\") - 5) / 5.0\n            ELSE 0.2 * AVG(\"trials\".\"decode_tps\") / 5.0\n          END)\n          + 0.25 * (CASE\n            WHEN AVG(\"trials\".\"prefill_tps\") >= 4000 THEN 1.0\n            WHEN AVG(\"trials\".\"prefill_tps\") >= 2000 THEN 0.8 + 0.2 * (AVG(\"trials\".\"prefill_tps\") - 2000) / 2000.0\n            WHEN AVG(\"trials\".\"prefill_tps\") >= 1000 THEN 0.6 + 0.2 * (AVG(\"trials\".\"prefill_tps\") - 1000) / 1000.0\n            WHEN AVG(\"trials\".\"prefill_tps\") >= 500  THEN 0.4 + 0.2 * (AVG(\"trials\".\"prefill_tps\") - 500) / 500.0\n            WHEN AVG(\"trials\".\"prefill_tps\") >= 200  THEN 0.2 + 0.2 * (AVG(\"trials\".\"prefill_tps\") - 200) / 300.0\n            ELSE 0.2 * AVG(\"trials\".\"prefill_tps\") / 200.0\n          END)\n          -- 716.8 = 0.7 * 1024: only ~70% of device RAM is usable headroom\n          + 0.30 * GREATEST(0, 1.0 - AVG(\"trials\".\"peak_rss_mb\") / (MIN(\"devices\".\"ram_gb\") * 716.8))\n        ) as \"composite_score\" from \"trials\" inner join \"runs\" on \"trials\".\"run_id\" = \"runs\".\"id\" inner join \"models\" on \"runs\".\"model_id\" = \"models\".\"id\" inner join \"devices\" on \"runs\".\"device_id\" = \"devices\".\"id\" left join \"models_info\" on \"models\".\"artifact_sha256\" = \"models_info\".\"artifact_sha256\" left join \"organizations\" \"lab_org\" on \"models_info\".\"lab_id\" = \"lab_org\".\"id\" left join \"organizations\" \"quant_org\" on \"models_info\".\"quantized_by_id\" = \"quant_org\".\"id\" where (\"runs\".\"status\" = 'verified' and \"trials\".\"input_tokens\" = 4096 and \"trials\".\"output_tokens\" = 1024) group by \"models\".\"id\", \"devices\".\"chip_id\", \"runs\".\"runtime_name\"",
+      "definition": "select \"models\".\"id\" as \"model_id\", COALESCE(NULLIF(MIN(\"models_info\".\"name\"), ''), \"models\".\"display_name\") as \"model_display_name\", \"models\".\"format\", COALESCE(NULLIF(MIN(\"models_info\".\"file_size_bytes\"), 0), \"models\".\"file_size_bytes\") as \"model_file_size_bytes\", COALESCE(NULLIF(MIN(\"models_info\".\"parameters\"), ''), \"models\".\"parameters\") as \"model_parameters\", COALESCE(NULLIF(MIN(\"models_info\".\"quant\"), ''), \"models\".\"quant\") as \"model_quant\", COALESCE(NULLIF(MIN(\"models_info\".\"architecture\"), ''), \"models\".\"architecture\") as \"model_architecture\", COALESCE(NULLIF(MIN(\"models_info\".\"source\"), ''), \"models\".\"source\") as \"model_source\", MIN(\"lab_org\".\"name\") as \"lab_name\", MIN(\"lab_org\".\"logo_url\") as \"lab_logo_url\", MIN(\"lab_org\".\"website_url\") as \"lab_website_url\", MIN(\"quant_org\".\"name\") as \"quantized_by_name\", MIN(\"quant_org\".\"logo_url\") as \"quantized_by_logo_url\", MIN(\"quant_org\".\"website_url\") as \"quantized_by_website_url\", \"devices\".\"chip_id\", MIN(\"devices\".\"cpu\") as \"device_cpu\", MIN(\"devices\".\"cpu_cores\") as \"device_cpu_cores\", MIN(\"devices\".\"gpu\") as \"device_gpu\", MIN(\"devices\".\"gpu_cores\") as \"device_gpu_cores\", MIN(\"devices\".\"ram_gb\") as \"device_ram_gb\", \"runs\".\"runtime_name\", count(distinct \"runs\".\"id\") as \"run_count\", count(\"trials\".\"id\") as \"trial_count\", PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY \"trials\".\"ttft_ms\") as \"ttft_p50_ms\", PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY \"trials\".\"ttft_ms\") as \"ttft_p95_ms\", AVG(\"trials\".\"decode_tps\") as \"avg_decode_tps\", AVG(\"trials\".\"prefill_tps\") as \"avg_prefill_tps\", \n          COALESCE(AVG(\n            CASE WHEN NOT (\"runs\".\"runtime_name\" = 'llama.cpp' AND \"runs\".\"harness_version\" <= '0.1.16')\n              AND NOT (LOWER(\"devices\".\"os_name\") != 'macos' AND \"runs\".\"harness_version\" < '0.1.19')\n              THEN \"trials\".\"idle_rss_mb\"\n            END\n          ), 0)\n         as \"avg_idle_rss_mb\", \n          COALESCE(AVG(\n            CASE WHEN NOT (\"runs\".\"runtime_name\" = 'llama.cpp' AND \"runs\".\"harness_version\" <= '0.1.16')\n              AND NOT (LOWER(\"devices\".\"os_name\") != 'macos' AND \"runs\".\"harness_version\" < '0.1.19')\n              THEN \"trials\".\"peak_rss_mb\"\n            END\n          ), 0)\n         as \"avg_peak_rss_mb\", (\n          CASE\n          -- When reliable memory data exists, use full formula (decode + prefill + memory)\n          WHEN AVG(\n            CASE WHEN NOT (\"runs\".\"runtime_name\" = 'llama.cpp' AND \"runs\".\"harness_version\" <= '0.1.16')\n              AND NOT (LOWER(\"devices\".\"os_name\") != 'macos' AND \"runs\".\"harness_version\" < '0.1.19')\n              THEN \"trials\".\"peak_rss_mb\"\n            END\n          ) IS NOT NULL THEN\n            0.45 * (CASE\n              WHEN AVG(\"trials\".\"decode_tps\") >= 100 THEN 1.0\n              WHEN AVG(\"trials\".\"decode_tps\") >= 40  THEN 0.8 + 0.2 * (AVG(\"trials\".\"decode_tps\") - 40) / 60.0\n              WHEN AVG(\"trials\".\"decode_tps\") >= 20  THEN 0.6 + 0.2 * (AVG(\"trials\".\"decode_tps\") - 20) / 20.0\n              WHEN AVG(\"trials\".\"decode_tps\") >= 10  THEN 0.4 + 0.2 * (AVG(\"trials\".\"decode_tps\") - 10) / 10.0\n              WHEN AVG(\"trials\".\"decode_tps\") >= 5   THEN 0.2 + 0.2 * (AVG(\"trials\".\"decode_tps\") - 5) / 5.0\n              ELSE 0.2 * AVG(\"trials\".\"decode_tps\") / 5.0\n            END)\n            + 0.25 * (CASE\n              WHEN AVG(\"trials\".\"prefill_tps\") >= 4000 THEN 1.0\n              WHEN AVG(\"trials\".\"prefill_tps\") >= 2000 THEN 0.8 + 0.2 * (AVG(\"trials\".\"prefill_tps\") - 2000) / 2000.0\n              WHEN AVG(\"trials\".\"prefill_tps\") >= 1000 THEN 0.6 + 0.2 * (AVG(\"trials\".\"prefill_tps\") - 1000) / 1000.0\n              WHEN AVG(\"trials\".\"prefill_tps\") >= 500  THEN 0.4 + 0.2 * (AVG(\"trials\".\"prefill_tps\") - 500) / 500.0\n              WHEN AVG(\"trials\".\"prefill_tps\") >= 200  THEN 0.2 + 0.2 * (AVG(\"trials\".\"prefill_tps\") - 200) / 300.0\n              ELSE 0.2 * AVG(\"trials\".\"prefill_tps\") / 200.0\n            END)\n            -- 716.8 = 0.7 * 1024: only ~70% of device RAM is usable headroom\n            -- Peak RSS falls back to file-size estimate when bugged readings are excluded\n            + 0.30 * GREATEST(0, 1.0 - COALESCE(\n                AVG(CASE WHEN NOT (\"runs\".\"runtime_name\" = 'llama.cpp' AND \"runs\".\"harness_version\" <= '0.1.16')\n                  AND NOT (LOWER(\"devices\".\"os_name\") != 'macos' AND \"runs\".\"harness_version\" < '0.1.19')\n                  THEN \"trials\".\"peak_rss_mb\"\n                END),\n                COALESCE(NULLIF(MIN(\"models_info\".\"file_size_bytes\"), 0), \"models\".\"file_size_bytes\")\n                  / (1024.0 * 1024.0) + 512.0\n              ) / (MIN(\"devices\".\"ram_gb\") * 716.8))\n          -- No reliable memory data (non-macOS < 0.1.19): score on speed only\n          ELSE\n            0.65 * (CASE\n              WHEN AVG(\"trials\".\"decode_tps\") >= 100 THEN 1.0\n              WHEN AVG(\"trials\".\"decode_tps\") >= 40  THEN 0.8 + 0.2 * (AVG(\"trials\".\"decode_tps\") - 40) / 60.0\n              WHEN AVG(\"trials\".\"decode_tps\") >= 20  THEN 0.6 + 0.2 * (AVG(\"trials\".\"decode_tps\") - 20) / 20.0\n              WHEN AVG(\"trials\".\"decode_tps\") >= 10  THEN 0.4 + 0.2 * (AVG(\"trials\".\"decode_tps\") - 10) / 10.0\n              WHEN AVG(\"trials\".\"decode_tps\") >= 5   THEN 0.2 + 0.2 * (AVG(\"trials\".\"decode_tps\") - 5) / 5.0\n              ELSE 0.2 * AVG(\"trials\".\"decode_tps\") / 5.0\n            END)\n            + 0.35 * (CASE\n              WHEN AVG(\"trials\".\"prefill_tps\") >= 4000 THEN 1.0\n              WHEN AVG(\"trials\".\"prefill_tps\") >= 2000 THEN 0.8 + 0.2 * (AVG(\"trials\".\"prefill_tps\") - 2000) / 2000.0\n              WHEN AVG(\"trials\".\"prefill_tps\") >= 1000 THEN 0.6 + 0.2 * (AVG(\"trials\".\"prefill_tps\") - 1000) / 1000.0\n              WHEN AVG(\"trials\".\"prefill_tps\") >= 500  THEN 0.4 + 0.2 * (AVG(\"trials\".\"prefill_tps\") - 500) / 500.0\n              WHEN AVG(\"trials\".\"prefill_tps\") >= 200  THEN 0.2 + 0.2 * (AVG(\"trials\".\"prefill_tps\") - 200) / 300.0\n              ELSE 0.2 * AVG(\"trials\".\"prefill_tps\") / 200.0\n            END)\n          END\n        ) as \"composite_score\" from \"trials\" inner join \"runs\" on \"trials\".\"run_id\" = \"runs\".\"id\" inner join \"models\" on \"runs\".\"model_id\" = \"models\".\"id\" inner join \"devices\" on \"runs\".\"device_id\" = \"devices\".\"id\" left join \"models_info\" on \"models\".\"artifact_sha256\" = \"models_info\".\"artifact_sha256\" left join \"organizations\" \"lab_org\" on \"models_info\".\"lab_id\" = \"lab_org\".\"id\" left join \"organizations\" \"quant_org\" on \"models_info\".\"quantized_by_id\" = \"quant_org\".\"id\" where (\"runs\".\"status\" = 'verified' and \"trials\".\"input_tokens\" = 4096 and \"trials\".\"output_tokens\" = 1024) group by \"models\".\"id\", \"devices\".\"chip_id\", \"runs\".\"runtime_name\"",
       "name": "view__model_stats_by_device",
       "schema": "public",
       "isExisting": false,

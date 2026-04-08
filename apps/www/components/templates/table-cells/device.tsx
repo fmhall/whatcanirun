@@ -4,15 +4,21 @@ import clsx from 'clsx';
 import { Cpu, Gpu, MemoryStick } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 
+import { getVramGb, MANUFACTURER_LABEL } from '@/lib/constants/gpu';
 import type { Device } from '@/lib/db/schema';
+import { parseManufacturer } from '@/lib/utils';
 
 import ClickableTooltip from '@/components/templates/clickable-tooltip';
+import { Badge } from '@/components/ui';
 
 // -----------------------------------------------------------------------------
 // Props
 // -----------------------------------------------------------------------------
 
-type DeviceTableCellProps = Pick<Device, 'cpu' | 'cpuCores' | 'gpu' | 'gpuCores' | 'ramGb'>;
+type DeviceTableCellProps = Pick<
+  Device,
+  'cpu' | 'cpuCores' | 'gpu' | 'gpuCores' | 'gpuCount' | 'ramGb' | 'osName'
+>;
 
 // -----------------------------------------------------------------------------
 // Component
@@ -23,11 +29,119 @@ const DeviceTableCell: React.FC<DeviceTableCellProps> & { Skeleton: React.FC } =
   cpuCores,
   gpu,
   gpuCores,
+  gpuCount,
   ramGb,
+  osName,
 }) => {
+  const isMac = osName?.toLowerCase() === 'macos';
+
+  if (!isMac) {
+    const hasGpu = gpuCount > 0;
+    const primaryName = hasGpu ? gpu : cpu;
+    const { manufacturer, displayName, logo: Icon } = parseManufacturer(primaryName);
+
+    if (!hasGpu) {
+      return (
+        <div className="flex flex-col items-start">
+          <span className="flex items-center gap-1.5 leading-5">
+            {Icon && manufacturer ? (
+              <ClickableTooltip
+                content={MANUFACTURER_LABEL[manufacturer]}
+                triggerProps={{ className: 'rounded' }}
+              >
+                <span className="flex size-4 shrink-0 items-center justify-center rounded">
+                  <Icon className="border-gray-7 transition-colors hover:border-gray-8" size={16} />
+                </span>
+              </ClickableTooltip>
+            ) : null}
+            <span className="line-clamp-1">{displayName}</span>
+            <Badge size="sm" variant="outline" intent="info">
+              CPU
+            </Badge>
+          </span>
+          <div className="mt-0 flex h-4 gap-2">
+            <ClickableTooltip content="CPU cores">
+              <div className="flex w-fit items-center gap-1 whitespace-nowrap text-xs leading-4 text-gray-11 underline decoration-dotted transition-colors hover:text-gray-12">
+                <span className="flex size-3 items-center justify-center">
+                  <Cpu />
+                </span>
+                <span>{Number(cpuCores).toLocaleString()}</span>
+              </div>
+            </ClickableTooltip>
+            <ClickableTooltip content="RAM">
+              <div className="flex w-fit items-center gap-1 whitespace-nowrap text-xs leading-4 text-gray-11 underline decoration-dotted transition-colors hover:text-gray-12">
+                <span className="flex size-3 items-center justify-center">
+                  <MemoryStick />
+                </span>
+                <span>{Number(ramGb).toLocaleString()} GB</span>
+              </div>
+            </ClickableTooltip>
+          </div>
+        </div>
+      );
+    }
+
+    const vram = getVramGb(gpu);
+    const totalVram = vram != null ? vram * (gpuCount ?? 1) : null;
+    const gpuCountBadge =
+      gpuCount > 1 ? (
+        <Badge className="min-w-fit" size="sm" variant="outline" intent="none" type="number">
+          {gpuCount}×
+        </Badge>
+      ) : null;
+
+    return (
+      <div className="flex flex-col items-start">
+        <span className="flex items-center gap-1.5 leading-5">
+          {Icon && manufacturer ? (
+            <ClickableTooltip
+              content={MANUFACTURER_LABEL[manufacturer]}
+              triggerProps={{ className: 'rounded' }}
+            >
+              <span className="flex size-4 shrink-0 items-center justify-center rounded">
+                <Icon className="border-gray-7 transition-colors hover:border-gray-8" size={16} />
+              </span>
+            </ClickableTooltip>
+          ) : null}
+          <span className="flex items-center gap-1.5">
+            <span className="line-clamp-1">{displayName}</span>
+            {gpuCountBadge}
+          </span>
+        </span>
+        {totalVram != null ? (
+          <div className="mt-0 flex h-4 gap-2">
+            <ClickableTooltip content="VRAM">
+              <div className="flex w-fit items-center gap-1 whitespace-nowrap text-xs leading-4 text-gray-11 underline decoration-dotted transition-colors hover:text-gray-12">
+                <span className="flex size-3 items-center justify-center">
+                  <MemoryStick />
+                </span>
+                <span>{totalVram} GB</span>
+              </div>
+            </ClickableTooltip>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  // macOS branch.
+  const { manufacturer, displayName, logo: Icon } = parseManufacturer(gpu ?? cpu);
+
   return (
     <div className="flex flex-col items-start">
-      <span className="line-clamp-1 leading-5">{cpu ?? gpu}</span>
+      <span className="flex items-center gap-1.5 leading-5">
+        {Icon && manufacturer ? (
+          <ClickableTooltip
+            content={MANUFACTURER_LABEL[manufacturer]}
+            triggerProps={{ className: 'rounded' }}
+          >
+            <span className="flex size-4 shrink-0 items-center justify-center rounded">
+              <Icon className="border-gray-7 transition-colors hover:border-gray-8" size={16} />
+            </span>
+          </ClickableTooltip>
+        ) : null}
+        <span className="line-clamp-1">{displayName}</span>
+      </span>
       <div className="mt-0 flex h-4 gap-2">
         {[
           {
