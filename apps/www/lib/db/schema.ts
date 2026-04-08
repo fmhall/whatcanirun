@@ -586,7 +586,7 @@ export const rewards = pgTable(
     modelReward: real('model_reward').notNull(),
     deviceReward: real('device_reward').notNull(),
     totalReward: real('total_reward').notNull(),
-    paymentRef: text('payment_ref'),
+    paymentRef: text('payment_ref'), // `${chainId}:${txHash}`
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (t) => [
