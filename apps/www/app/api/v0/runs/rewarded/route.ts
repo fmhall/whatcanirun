@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { processBundle } from '../process-bundle';
+import { Credential } from 'mppx';
 import { Mppx, tempo } from 'mppx/nextjs';
 import { isAddress } from 'viem';
 
@@ -11,6 +12,7 @@ import { isAddress } from 'viem';
 const TEMPO_CHAIN_ID = 42431;
 const TEMPO_USDC_E_ADDRESS = '0x20C000000000000000000000b9537d11c60E8b50';
 const RECIPIENT_ADDRESS = '0x8831C0C0CCB2E45c187A4e3fA92D683c52170407';
+const TEMPO_DID_RE = /^did:pkh:eip155:(0|[1-9]\d*):(0x[a-fA-F0-9]{40})$/;
 
 // -----------------------------------------------------------------------------
 // MPPX setup
@@ -45,19 +47,30 @@ export const POST = mppx.charge({ amount: '0.00' })(async (request: Request) => 
     return NextResponse.json({ error: 'Missing bundle zip file.' }, { status: 400 });
   }
 
-  // Wallet address is required for reward identity.
-  const walletAddress = formData.get('wallet_address') as string | null;
-  if (!walletAddress || !isAddress(walletAddress)) {
-    return NextResponse.json({ error: 'Missing or invalid `wallet_address`.' }, { status: 400 });
+  const identity = extractVerifiedIdentity(request);
+  if (!identity) {
+    return NextResponse.json({ error: 'Missing or invalid verified wallet identity.' }, { status: 400 });
   }
 
-  const did = `did:pkh:eip155:${TEMPO_CHAIN_ID}:${walletAddress}`;
+  const walletAddress = formData.get('wallet_address') as string | null;
+  if (walletAddress) {
+    if (!isAddress(walletAddress)) {
+      return NextResponse.json({ error: 'Invalid `wallet_address`.' }, { status: 400 });
+    }
+
+    if (walletAddress.toLowerCase() !== identity.address.toLowerCase()) {
+      return NextResponse.json(
+        { error: '`wallet_address` does not match the verified MPPX wallet.' },
+        { status: 400 },
+      );
+    }
+  }
 
   // Resolve client IP for spam detection.
   const forwarded = request.headers.get('x-forwarded-for');
   const ip = forwarded?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
 
-  const result = await processBundle({ bundleFile, ip, did });
+  const result = await processBundle({ bundleFile, ip, did: identity.did });
 
   if (!result.ok) {
     const body: Record<string, unknown> = { error: result.error };
@@ -69,7 +82,7 @@ export const POST = mppx.charge({ amount: '0.00' })(async (request: Request) => 
   return NextResponse.json(
     {
       run_id: result.runId,
-      did,
+      did: identity.did,
       status: result.status,
       run_url: result.runUrl,
       reward: 'Pending — reward is granted when the run is verified.',
@@ -77,3 +90,31 @@ export const POST = mppx.charge({ amount: '0.00' })(async (request: Request) => 
     { status: 201 },
   );
 });
+
+// -----------------------------------------------------------------------------
+// Helpers
+// -----------------------------------------------------------------------------
+
+function extractVerifiedIdentity(
+  request: Request,
+): { address: string; did: string } | null {
+  try {
+    const credential = Credential.fromRequest(request);
+    if (!credential.source) return null;
+
+    const match = TEMPO_DID_RE.exec(credential.source);
+    if (!match) return null;
+
+    const [, chainIdText, address] = match;
+    if (Number(chainIdText) !== TEMPO_CHAIN_ID || !isAddress(address)) {
+      return null;
+    }
+
+    return {
+      address,
+      did: `did:pkh:eip155:${chainIdText}:${address}`,
+    };
+  } catch {
+    return null;
+  }
+}
