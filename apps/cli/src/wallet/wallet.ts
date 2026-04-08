@@ -47,7 +47,7 @@ export async function createWallet(): Promise<WalletData> {
   const existing = getWallet();
   if (existing) return existing;
 
-  // Generate a random private key using crypto
+  // Generate a random private key using crypto.
   const privateKeyBytes = new Uint8Array(32);
   crypto.getRandomValues(privateKeyBytes);
   const privateKey =
@@ -56,7 +56,7 @@ export async function createWallet(): Promise<WalletData> {
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
 
-  // Derive address using viem (lazy import to keep startup fast)
+  // Derive address using viem (lazy import to keep startup fast).
   const { privateKeyToAccount } = await import('viem/accounts');
   const account = privateKeyToAccount(privateKey as `0x${string}`);
 

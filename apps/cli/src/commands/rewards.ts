@@ -1,67 +1,68 @@
 import chalk from 'chalk';
 import { defineCommand } from 'citty';
 
+import { binName } from '../utils/bin';
 import * as log from '../utils/log';
 import { createWallet, getDid, getWallet, walletFilePath } from '../wallet/wallet';
 
-const optIn = defineCommand({
+const init = defineCommand({
   meta: {
-    name: 'opt-in',
-    description: 'Create a wallet to receive benchmark rewards',
+    name: 'init',
+    description: 'Create a wallet to receive rewards for submitting benchmarks',
   },
   async run() {
     const existing = getWallet();
     if (existing) {
-      console.log(chalk.white(`[${chalk.green('✓')}] Wallet already exists.`));
-      console.log(chalk.dim(` ↳ Address: ${chalk.cyan(existing.address)}`));
-      console.log(chalk.dim(` ↳ DID:     ${chalk.cyan(getDid())}`));
-      console.log(chalk.dim(` ↳ Stored at ${log.filepath(walletFilePath())}`));
-      return;
+      console.log(
+        chalk.white(`[${chalk.green('✓')}] Wallet found: ${chalk.bold.blue(existing.address)}.`)
+      );
+      console.log(chalk.dim(` →  DID        ${chalk.cyan(getDid())}`));
+      console.log(chalk.dim(` →  Stored at  ${chalk(log.filepath(walletFilePath()))}`));
+    } else {
+      const wallet = await createWallet();
+      console.log(
+        chalk.white(`[${chalk.green('✓')}] Wallet created: ${chalk.bold.blue(wallet.address)}.`)
+      );
+      console.log(chalk.dim(` →  DID        ${chalk.cyan(getDid())}`));
+      console.log(chalk.dim(` →  Stored at  ${chalk(log.filepath(walletFilePath()))}`));
     }
-
-    const wallet = await createWallet();
-    console.log(chalk.white(`[${chalk.green('✓')}] Wallet created.`));
-    console.log(chalk.dim(` ↳ Address: ${chalk.cyan(wallet.address)}`));
-    console.log(chalk.dim(` ↳ DID:     ${chalk.cyan(getDid())}`));
-    console.log(chalk.dim(` ↳ Stored at ${log.filepath(walletFilePath())}`));
-    console.log();
     console.log(
-      chalk.dim('Use --rewarded when submitting to earn rewards on verification.'),
+      chalk.white(
+        `[${chalk.blueBright('i')}] Use ${chalk.cyan('--reward')} when submitting runs to earn rewards.`
+      )
     );
   },
 });
 
-const status = defineCommand({
+const wallet = defineCommand({
   meta: {
-    name: 'status',
-    description: 'Show wallet status',
+    name: 'wallet',
+    description: 'Show your rewards wallet',
   },
   async run() {
     const wallet = getWallet();
     if (!wallet) {
-      console.log(
-        chalk.white(
-          `[${chalk.yellow('!')}] No rewards wallet found. Run ${chalk.bold.cyan('wcir rewards opt-in')} to create one.`,
-        ),
+      log.error(
+        `No reward wallets found.` +
+          `\n  ↳ Run ${chalk.bold.cyan(`${binName()} rewards init`)} to create one.`
       );
       return;
     }
 
-    console.log(chalk.white('Rewards wallet'));
-    console.log(chalk.dim(` ↳ Address: ${chalk.cyan(wallet.address)}`));
-    console.log(chalk.dim(` ↳ DID:     ${chalk.cyan(getDid())}`));
-    console.log(chalk.dim(` ↳ File:    ${log.filepath(walletFilePath())}`));
+    console.log(chalk.white(`Your rewards wallet is ${chalk.bold.blue(wallet.address)}.`));
+    console.log(chalk.dim(`→ DID        ${chalk.cyan(getDid())}`));
+    console.log(chalk.dim(`→ Stored at  ${chalk(log.filepath(walletFilePath()))}`));
   },
 });
 
 const command = defineCommand({
   meta: {
     name: 'rewards',
-    description: 'Manage benchmark rewards',
+    description: 'View and manage your rewards wallet',
   },
   subCommands: {
-    'opt-in': optIn,
-    status,
+    init,
+    wallet,
   },
 });
 

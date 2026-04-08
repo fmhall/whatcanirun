@@ -438,7 +438,7 @@ export async function executeBenchmark(opts: BenchmarkOpts): Promise<string> {
             chalk.white(`[${chalk.green('✓')}] Uploaded run: ${chalk.underline(result.run_url)}`)
           );
           console.log(
-            chalk.dim(` ↳ DID: ${chalk.cyan(result.did)} — reward granted on verification.`),
+            chalk.dim(` ↳ DID: ${chalk.cyan(result.did)} — reward granted on verification.`)
           );
         } else {
           const result = await uploadBundle(bundlePath, { signal: controller.signal });

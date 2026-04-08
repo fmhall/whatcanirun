@@ -41,9 +41,7 @@ const command = defineCommand({
     const useRewarded = args.rewarded as boolean;
 
     if (useRewarded && !getWallet()) {
-      log.error(
-        `No rewards wallet found. Run ${chalk.bold.cyan('wcir rewards opt-in')} first.`,
-      );
+      log.error(`No rewards wallet found. Run ${chalk.bold.cyan('wcir rewards opt-in')} first.`);
       process.exit(1);
     }
 
@@ -83,7 +81,7 @@ const command = defineCommand({
           chalk.white(`[${chalk.green('✓')}] Uploaded run: ${chalk.underline(result.run_url)}`)
         );
         console.log(
-          chalk.dim(` ↳ DID: ${chalk.cyan(result.did)} — reward granted on verification.`),
+          chalk.dim(` ↳ DID: ${chalk.cyan(result.did)} — reward granted on verification.`)
         );
       } else {
         const result = await uploadBundle(bundlePath, { signal: controller.signal });

@@ -6,10 +6,10 @@ import { auth, rewards, run, show, submit, validate, version } from './commands'
 
 const subCommands = {
   auth,
-  rewards,
   run,
-  show,
   submit,
+  rewards,
+  show,
   validate,
   version,
 };

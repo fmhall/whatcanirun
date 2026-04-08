@@ -26,7 +26,7 @@ const API_BASE = process.env.WCIR_API_URL || 'https://whatcani.run';
 
 export async function uploadBundleRewarded(
   bundlePath: string,
-  options?: { signal?: AbortSignal },
+  options?: { signal?: AbortSignal }
 ): Promise<RewardedUploadResult> {
   const wallet = getWallet();
   if (!wallet) {
